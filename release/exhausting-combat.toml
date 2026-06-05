@@ -1,0 +1,22 @@
+[Stamina.NPC]
+fNPCStaminaCostJump = 10.0
+fNPCStaminaCostBow = 10.0
+fNPCStaminaCostSprint = 7.0
+fNPCStaminaCostAttack = 10.0
+fNPCStaminaCostSneak = 2.0
+fNPCStaminaCostCast = 10.0
+fNPCStaminaCostSprintHorse = 10.0
+fNPCStaminaCostBowDrain = 5.0
+fNPCStaminaCostSwim = 5.0
+
+[Stamina.Player]
+fPlayerStaminaCostJump = 10.0
+fPlayerStaminaCostBow = 10.0
+fPlayerStaminaCostSprint = 7.0
+fPlayerStaminaCostAttack = 10.0
+fPlayerStaminaCostSneak = 2.0
+fPlayerStaminaCostCast = 10.0
+fPlayerStaminaCostSprintHorse = 7.0
+fPlayerStaminaCostBowDrain = 5.0
+fPlayerStaminaCostSwim = 5.0
+

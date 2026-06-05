@@ -1,9 +1,13 @@
 #pragma once
+
+#define NOMINMAX
+
 #include <RE/Skyrim.h>
 
 #include <SKSE/SKSE.h>
 
 #include <styyx-utils.h>
+#define REX_OPTION_TOML
 
 using namespace StyyxUtil;
 using namespace std::literals;

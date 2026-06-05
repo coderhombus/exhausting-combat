@@ -7,11 +7,11 @@ includes("extern/styyx-utils")
 
 -- set up for project
 
-local mod_name = "MOD"
+local mod_name = "styyx-stamina-combat"
 
 set_project(mod_name)
 set_version("1.0.0")
-set_license("MIT")
+set_license("GPL-3.0")
 
 -- language and warnings
 set_languages("c++23")
@@ -28,6 +28,7 @@ includes("xmake-rules.lua")
 set_config("skyrim_ae",true)
 set_config("rex_toml", true)
 set_config("use-hook-utils", true)
+set_config("use-fuck", true)
 
 -- add plugin target
 target(mod_name)
@@ -43,7 +44,7 @@ target(mod_name)
     add_rules("skse-template.plugin", {
         name = mod_name,
         author = "styyx",
-        description = "A plugin template for commonlibsse."
+        description = "Add stamina cost to certain actions."
     })
 
     if has_config("skyrim_ae") then
