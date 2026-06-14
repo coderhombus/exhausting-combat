@@ -6,6 +6,7 @@
 
 #include <SKSE/SKSE.h>
 
+#include <SimpleIni.h>
 #include <styyx-utils.h>
 #define REX_OPTION_TOML
 

@@ -1,6 +1,7 @@
 #include "hooks.h"
 
 #include "RE/A/ActorMagicCaster.h"
+#include "RE/B/BGSAttackData.h"
 #include "RE/C/Character.h"
 #include "RE/P/PlayerCharacter.h"
 #include "REL/Offset.h"
@@ -135,10 +136,9 @@ float AttackStamCostHook::Call(RE::ActorValueOwner* a_this, RE::BGSAttackData* a
         time_allowed = now + ATTACK_COST_COOLDOWN;
     }
 
-    if (a_attack->data.flags.any(RE::AttackData::AttackFlag::kBashAttack, RE::AttackData::AttackFlag::kPowerAttack,
-                                 RE::AttackData::AttackFlag::kContinuousAttack,
-                                 RE::AttackData::AttackFlag::kChargeAttack))
+    if (a_attack->data.flags.any(RE::AttackData::AttackFlag::kBashAttack, RE::AttackData::AttackFlag::kPowerAttack))
     {
+
         return result;
     }
 
