@@ -8,15 +8,16 @@
 namespace EXCO
 {
 
-
 void FMenu::StaminaTool::Draw()
 {
     if (FUCK::CollapsingHeader(MENU::TITLE::npc_section.c_str()))
     {
+
         DrawNPCs();
     }
     if (FUCK::CollapsingHeader(MENU::TITLE::player_section.c_str()))
     {
+
         DrawPlayer();
     }
     if (FUCK::CollapsingHeader(MENU::TITLE::system_section.c_str()))
@@ -36,7 +37,9 @@ void FMenu::StaminaTool::DrawNPCs()
 {
 
     using namespace MENU;
-    FUCKUtil::GreenTitleText("Stamina for NPCs");
+    FUCKUtil::GreenTitleText("Stamina for NPCs", 5);
+    FUCK::Indent();
+
     FUCKUtil::SetSliderFloat(LAB::npc_attack_cost.c_str(), VAR::npc_attack_cost, CONFIG::stamina_cost_attack_npc, 0.0,
                              50.0, TOOL::npc_attack_cost.c_str());
     FUCKUtil::SetSliderFloat(LAB::npc_sprint_cost.c_str(), VAR::npc_sprint_cost, CONFIG::stamina_cost_sprint_npc, 0.0,
@@ -51,12 +54,15 @@ void FMenu::StaminaTool::DrawNPCs()
                              0.0, 20.0, TOOL::npc_bow_draw_cost.c_str());
     FUCKUtil::SetSliderFloat(LAB::npc_bow_shoot_cost.c_str(), VAR::npc_bow_shoot_cost, CONFIG::stamina_cost_bow_npc,
                              0.0, 50.0, TOOL::npc_bow_shoot_cost.c_str());
+    FUCK::Unindent();
 };
 void FMenu::StaminaTool::DrawPlayer()
 {
 
     using namespace MENU;
-    FUCKUtil::GreenTitleText("Stamina for Player");
+    FUCKUtil::GreenTitleText("Stamina for Player", 5);
+    FUCK::Indent();
+
     FUCKUtil::SetSliderFloat(LAB::player_attack_cost.c_str(), VAR::player_attack_cost,
                              CONFIG::stamina_cost_attack_player, 0.0, 50.0, TOOL::player_attack_cost.c_str());
     FUCKUtil::SetSliderFloat(LAB::player_sprint_cost.c_str(), VAR::player_sprint_cost,
@@ -76,6 +82,7 @@ void FMenu::StaminaTool::DrawPlayer()
     FUCKUtil::SetSliderFloat(LAB::player_horseride_sprint_cost.c_str(), VAR::player_horseride_sprint_cost,
                              CONFIG::stamina_cost_sprint_horse_player, 0.0, 20.0,
                              TOOL::player_horseride_sprint_cost.c_str());
+    FUCK::Unindent();
 }
 void FMenu::StaminaTool::DrawSystem()
 {
