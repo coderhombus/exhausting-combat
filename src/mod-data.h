@@ -49,6 +49,9 @@ inline constexpr RE::PerkEntryPoint setBowDrainEP = RE::PerkEntryPoint::kCanDual
 
 inline constexpr auto swimStam                 = "SwimStamina";
 inline constexpr RE::PerkEntryPoint swimStamEP = RE::PerkEntryPoint::kModPowerAttackStamina;
+
+inline constexpr auto runStam                 = "RunningStamina";
+inline constexpr RE::PerkEntryPoint runStamEP = RE::PerkEntryPoint::kModPowerAttackStamina;
 } // namespace ENTRIES
 
 } // namespace EXCO

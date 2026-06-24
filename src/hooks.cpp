@@ -32,6 +32,7 @@ void PlayerUpdateHook::Call(RE::PlayerCharacter* a_this, float a_deltaTime)
     StaminaCost::ManageSprintStamina(a_this, a_deltaTime);
     StaminaCost::ManageBowDraw(a_this, a_deltaTime);
     StaminaCost::ManageSwimStamina(a_this, a_deltaTime);
+    StaminaCost::ManageRunningStamina(a_this, a_deltaTime);
     func(a_this, a_deltaTime);
 }
 
@@ -42,6 +43,7 @@ void NPCUpdateHook::Call(RE::Actor* a_this, float a_deltaTime)
     StaminaCost::ManageSprintStamina(a_this, r_delta);
     StaminaCost::ManageBowDraw(a_this, r_delta);
     StaminaCost::ManageSwimStamina(a_this, r_delta);
+    StaminaCost::ManageRunningStamina(a_this, a_deltaTime);
     func(a_this, a_deltaTime);
 }
 

@@ -26,5 +26,8 @@ inline REX::TOML::F32 stamina_cost_bow_drain_player{STAM_PL, "fPlayerStaminaCost
 inline REX::TOML::F32 stamina_cost_swim_npc{STAM_NPC, "fNPCStaminaCostSwim", 5.F};
 inline REX::TOML::F32 stamina_cost_swim_player{STAM_PL, "fPlayerStaminaCostSwim", 5.F};
 
+inline REX::TOML::F32 stamina_cost_running_npc{STAM_NPC, "fNPCStaminaCostRunning", 1.F};
+inline REX::TOML::F32 stamina_cost_running_player{STAM_PL, "fPlayerStaminaCostRunning", 1.F};
+
 void UpdateSettings(bool a_save = false);
 } // namespace EXCO::CONFIG
