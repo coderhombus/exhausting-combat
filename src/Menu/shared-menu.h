@@ -35,6 +35,9 @@ inline std::string npc_jump_cost = "Jumping Cost##npc";
 inline std::string npc_horseride_sprint_cost = "Horse Riding Cost##npc";
 inline std::string npc_bow_draw_cost         = "Bow Drawing Cost##npc";
 inline std::string npc_bow_shoot_cost        = "Bow Shooting Cost##npc";
+
+inline std::string npc_running_cost = "Running Cost##npc";
+
 // Player
 inline std::string player_attack_cost           = "Attack Cost##player";
 inline std::string player_sprint_cost           = "Sprint Cost##player";
@@ -45,6 +48,7 @@ inline std::string player_jump_cost             = "Jumping Cost##player";
 inline std::string player_horseride_sprint_cost = "Horse Riding Cost##player";
 inline std::string player_bow_draw_cost         = "Bow Drawing Cost##player";
 inline std::string player_bow_shoot_cost        = "Bow Shooting Cost##player";
+inline std::string player_running_cost          = "Running Cost##player";
 } // namespace LAB
 namespace TOOL
 {
@@ -63,6 +67,9 @@ inline std::string npc_horseride_sprint_cost = "Stamina cost for sprinting on ho
 inline std::string npc_bow_draw_cost         = "Stamina cost for drawing a bow without zoom. Affects the entire reload "
                                                "animation of crossbows!";
 inline std::string npc_bow_shoot_cost        = "Stamina cost for firing an arrow/bolt";
+
+inline std::string npc_running_cost = "Stamina cost for running";
+
 // Player
 inline std::string player_attack_cost           = "Stamina Cost for normal attacks";
 inline std::string player_sprint_cost           = "Stamina Cost for Sprinting, replaces vanilla "
@@ -76,6 +83,7 @@ inline std::string player_bow_draw_cost = "Stamina cost for drawing a bow withou
                                           "animation of crossbows!";
 
 inline std::string player_bow_shoot_cost = "Stamina cost for firing an arrow/bolt";
+inline std::string player_running_cost   = "Stamina cost for running";
 } // namespace TOOL
 
 namespace VAR
@@ -90,6 +98,7 @@ inline float npc_jump_cost{};
 inline float npc_horseride_sprint_cost{};
 inline float npc_bow_draw_cost{};
 inline float npc_bow_shoot_cost{};
+inline float npc_running_cost{};
 
 inline float player_attack_cost{};
 inline float player_sprint_cost{};
@@ -100,6 +109,7 @@ inline float player_jump_cost{};
 inline float player_horseride_sprint_cost{};
 inline float player_bow_draw_cost{};
 inline float player_bow_shoot_cost{};
+inline float player_running_cost{};
 } // namespace VAR
 
 } // namespace MENU

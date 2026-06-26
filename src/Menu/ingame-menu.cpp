@@ -54,6 +54,8 @@ void FMenu::StaminaTool::DrawNPCs()
                           0.0, 20.0, TOOL::npc_bow_draw_cost.c_str());
     FUCKUtil::SliderFloat(LAB::npc_bow_shoot_cost.c_str(), VAR::npc_bow_shoot_cost, CONFIG::stamina_cost_bow_npc, 0.0,
                           50.0, TOOL::npc_bow_shoot_cost.c_str());
+    FUCKUtil::SliderFloat(LAB::npc_running_cost.c_str(), VAR::npc_running_cost, CONFIG::stamina_cost_running_npc, 0.0,
+                          20.0, TOOL::npc_running_cost.c_str());
     FUCK::Unindent();
 };
 void FMenu::StaminaTool::DrawPlayer()
@@ -82,6 +84,8 @@ void FMenu::StaminaTool::DrawPlayer()
     FUCKUtil::SliderFloat(LAB::player_horseride_sprint_cost.c_str(), VAR::player_horseride_sprint_cost,
                           CONFIG::stamina_cost_sprint_horse_player, 0.0, 20.0,
                           TOOL::player_horseride_sprint_cost.c_str());
+    FUCKUtil::SliderFloat(LAB::player_running_cost.c_str(), VAR::player_running_cost,
+                          CONFIG::stamina_cost_running_player, 0.0, 20.0, TOOL::player_running_cost.c_str());
     FUCK::Unindent();
 }
 void FMenu::StaminaTool::DrawSystem()
