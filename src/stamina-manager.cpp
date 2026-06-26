@@ -3,6 +3,7 @@
 #include "Utility/util.h"
 #include "config.h"
 #include "mod-data.h"
+#include "st-actor.h"
 
 
 namespace EXCO
@@ -19,9 +20,9 @@ void StaminaCost::ManageSneakStamina(RE::Actor* a_actor, float a_deltaTime)
     if (a_actor->GetActorValue(RE::ActorValue::kStamina) <= 0.f)
         return;
 
-    const auto cond_item     = ActorUtil::GetWieldingWeapon(a_actor);
-    const float default_cost = a_actor->IsPlayerRef() ? CONFIG::stamina_cost_sneak_player.GetValue()
-                                                      : CONFIG::stamina_cost_sneak_npc.GetValue();
+    auto cond_item     = ActorUtil::GetWieldingWeapon(a_actor);
+    float default_cost = a_actor->IsPlayerRef() ? CONFIG::stamina_cost_sneak_player.GetValue()
+                                                : CONFIG::stamina_cost_sneak_npc.GetValue();
 
     float reduce = default_cost * a_deltaTime;
 
@@ -35,8 +36,8 @@ void StaminaCost::ManageJumpStamina(RE::Actor* a_actor)
 {
     if (!ActorValidAndNotGod(a_actor))
         return;
-    float jump_cost      = CalculateJumpCost(a_actor);
-    const auto cond_item = ActorUtil::GetWieldingWeapon(a_actor);
+    float jump_cost = CalculateJumpCost(a_actor);
+    auto cond_item  = ActorUtil::GetWieldingWeapon(a_actor);
 
     RE::Actor* damaged_actor = Util::GetDamagedActorIfMount(a_actor);
     RE::HandleEntryPoint(ENTRIES::jumpStamEP, a_actor, jump_cost, ENTRIES::jumpStam, cond_item);
@@ -68,10 +69,10 @@ void StaminaCost::ManageSprintStamina(RE::Actor* a_actor, float a_deltaTime)
         RE::ActorPtr rider{};
         a_actor->GetMountedBy(rider);
 
-        const auto apply_on   = rider ? rider.get() : a_actor;
-        const float base_cost = CalculateHorseSprintCost(apply_on);
-        float cost            = base_cost * a_deltaTime;
-        const auto cond_item  = ActorUtil::GetWieldingWeapon(apply_on);
+        auto apply_on   = rider ? rider.get() : a_actor;
+        float base_cost = CalculateHorseSprintCost(apply_on);
+        float cost      = base_cost * a_deltaTime;
+        auto cond_item  = ActorUtil::GetWieldingWeapon(apply_on);
 
         RE::HandleEntryPoint(ENTRIES::mountSprintStamEP, apply_on, cost, ENTRIES::mountSprintStam, cond_item);
 
@@ -80,9 +81,9 @@ void StaminaCost::ManageSprintStamina(RE::Actor* a_actor, float a_deltaTime)
         return;
     }
 
-    const float default_cost = CalculateSprintCost(a_actor);
-    float reduce             = default_cost * a_deltaTime;
-    const auto weapon        = ActorUtil::GetWieldingWeapon(a_actor);
+    float default_cost = CalculateSprintCost(a_actor);
+    float reduce       = default_cost * a_deltaTime;
+    auto weapon        = ActorUtil::GetWieldingWeapon(a_actor);
 
     RE::HandleEntryPoint(ENTRIES::sprintStamEP, a_actor, reduce, ENTRIES::sprintStam, weapon);
 
@@ -105,7 +106,7 @@ bool StaminaCost::ManageCastStamina(RE::ActorMagicCaster* a_caster)
         return true;
     }
 
-    const auto spell = a_caster->currentSpell;
+    auto spell = a_caster->currentSpell;
 
     // concentration is handled in the update ActorMagicCaster update loop
     if (spell->GetCastingType() == RE::MagicSystem::CastingType::kConcentration)
@@ -113,7 +114,7 @@ bool StaminaCost::ManageCastStamina(RE::ActorMagicCaster* a_caster)
         return true;
     }
 
-    const auto actor = a_caster->GetCasterAsActor();
+    auto actor = a_caster->GetCasterAsActor();
     if (!actor)
     {
         return true;
@@ -150,13 +151,13 @@ bool StaminaCost::ManageConcentrationStamina(RE::ActorMagicCaster* a_caster, flo
     {
         return true;
     }
-    const auto actor = a_caster->GetCasterAsActor();
+    auto actor = a_caster->GetCasterAsActor();
     if (!actor)
     {
         return true;
     }
 
-    const auto spell = a_caster->currentSpell;
+    auto spell = a_caster->currentSpell;
 
     if (!MagicUtil::IsSpellPlayable(spell))
     {
@@ -181,7 +182,7 @@ float StaminaCost::ManageAttackStamina(RE::Actor* a_actor, const RE::BGSAttackDa
         return 0;
 
     float attack_cost = CalculateAttackCost(a_actor);
-    const auto weapon = ActorUtil::GetWieldingWeapon(a_actor);
+    auto weapon       = ActorUtil::GetWieldingWeapon(a_actor);
 
 
     RE::HandleEntryPoint(ENTRIES::attackStamEP, a_actor, attack_cost, ENTRIES::attackStam, weapon);
@@ -219,10 +220,10 @@ void StaminaCost::ManageBowDraw(RE::Actor* a_actor, float a_deltaTime)
     if (!Util::IsBowDrawNoZoom(a_actor))
         return;
 
-    const auto equipped_weapon = skyrim_cast<RE::TESObjectWEAP*>(a_actor->GetEquippedObject(false));
-    const float base_cost      = a_actor->IsPlayerRef() ? CONFIG::stamina_cost_bow_drain_player.GetValue()
-                                                        : CONFIG::stamina_cost_bow_drain_npc.GetValue();
-    float stam_cost            = base_cost * a_deltaTime;
+    auto equipped_weapon = skyrim_cast<RE::TESObjectWEAP*>(a_actor->GetEquippedObject(false));
+    float base_cost      = a_actor->IsPlayerRef() ? CONFIG::stamina_cost_bow_drain_player.GetValue()
+                                                  : CONFIG::stamina_cost_bow_drain_npc.GetValue();
+    float stam_cost      = base_cost * a_deltaTime;
 
     RE::HandleEntryPoint(ENTRIES::bowDrawStamEP, a_actor, stam_cost, ENTRIES::bowDrawStam, equipped_weapon);
 
@@ -247,14 +248,14 @@ static constexpr float MAX_WEIGHT = 33.0;
 
 float StaminaCost::CalculateAttackCost(RE::Actor* a_actor)
 {
-    const auto weapon    = a_actor->GetAttackingWeapon() ? a_actor->GetAttackingWeapon()->object : nullptr;
-    const auto base_cost = a_actor->IsPlayerRef() ? CONFIG::stamina_cost_attack_player.GetValue()
-                                                  : CONFIG::stamina_cost_attack_npc.GetValue();
+    auto weapon    = a_actor->GetAttackingWeapon() ? a_actor->GetAttackingWeapon()->object : nullptr;
+    auto base_cost = a_actor->IsPlayerRef() ? CONFIG::stamina_cost_attack_player.GetValue()
+                                            : CONFIG::stamina_cost_attack_npc.GetValue();
 
     if (!weapon)
         return base_cost;
 
-    const auto weap = weapon->As<RE::TESObjectWEAP>();
+    auto weap = weapon->As<RE::TESObjectWEAP>();
     if (!weap)
         return base_cost;
 
@@ -265,8 +266,8 @@ float StaminaCost::CalculateAttackCost(RE::Actor* a_actor)
     // vanilla average ~17
     // formula: result = (weight - min) / (max - min)
 
-    const auto weight   = std::max(weapon->GetWeight(), 1.f);
-    const auto modifier = 1.f + std::clamp((weight - MIN_WEIGHT) / (MAX_WEIGHT - MIN_WEIGHT), 0.f, 1.f) * 0.3f;
+    auto weight   = std::max(weapon->GetWeight(), 1.f);
+    auto modifier = 1.f + std::clamp((weight - MIN_WEIGHT) / (MAX_WEIGHT - MIN_WEIGHT), 0.f, 1.f) * 0.3f;
     // up to 30% more stamina cost for heavy weapons
 
     return base_cost * modifier;
@@ -279,18 +280,18 @@ float StaminaCost::CalculateCastCost(const RE::ActorMagicCaster* a_caster, const
     // is probably never null, but better safe than sorry
     if (!a_caster || !a_spell)
         return 0.f;
-    const auto actor = a_caster->GetCasterAsActor();
+    auto actor = a_caster->GetCasterAsActor();
     if (!ActorValidAndNotGod(actor))
         return 0.f;
 
-    const auto base_cost = actor->IsPlayerRef() ? CONFIG::stamina_cost_casting_player.GetValue()
-                                                : CONFIG::stamina_cost_casting_npc.GetValue();
+    auto base_cost = actor->IsPlayerRef() ? CONFIG::stamina_cost_casting_player.GetValue()
+                                          : CONFIG::stamina_cost_casting_npc.GetValue();
     // prevent 0 magicka cost from costing 0 stamina
-    const auto mag_cost = std::max(a_spell->CalculateMagickaCost(actor), 1.0f);
+    auto mag_cost = std::max(a_spell->CalculateMagickaCost(actor), 1.0f);
 
     // magicka cost can only add up to 25 stamina cost to base
-    const auto cast_cost_addition = std::min(std::sqrt(mag_cost) * CAST_MODIFIER, MAX_CAST_COST_ADD);
-    const auto cost               = base_cost + cast_cost_addition;
+    auto cast_cost_addition = std::min(std::sqrt(mag_cost) * CAST_MODIFIER, MAX_CAST_COST_ADD);
+    auto cost               = base_cost + cast_cost_addition;
 
     return cost;
 }
@@ -299,7 +300,7 @@ float StaminaCost::CalculateJumpCost(RE::Actor* a_actor)
 {
     if (!ActorValidAndNotGod(a_actor))
         return 0.f;
-    const float base_cost =
+    float base_cost =
         a_actor->IsPlayerRef() ? CONFIG::stamina_cost_jump_player.GetValue() : CONFIG::stamina_cost_jump_npc.GetValue();
 
     return CalculateWeightModi(base_cost, a_actor);
@@ -309,8 +310,8 @@ float StaminaCost::CalculateSprintCost(RE::Actor* a_actor)
 {
     if (!ActorValidAndNotGod(a_actor))
         return 0.f;
-    const float base_sprint_cost = a_actor->IsPlayerRef() ? CONFIG::stamina_cost_sprint_player.GetValue()
-                                                          : CONFIG::stamina_cost_sprint_npc.GetValue();
+    float base_sprint_cost = a_actor->IsPlayerRef() ? CONFIG::stamina_cost_sprint_player.GetValue()
+                                                    : CONFIG::stamina_cost_sprint_npc.GetValue();
 
     return CalculateWeightModi(base_sprint_cost, a_actor);
 }
@@ -318,8 +319,8 @@ float StaminaCost::CalculateSprintCost(RE::Actor* a_actor)
 float StaminaCost::CalculateWeightModi(float a_baseCost, const RE::Actor* a_actor)
 {
     // full weight adds 50% of the base
-    const float carry_weight = std::max(a_actor->GetActorValue(RE::ActorValue::kCarryWeight), 1.0f);
-    const float modi         = a_actor->GetActorValue(RE::ActorValue::kInventoryWeight) / carry_weight;
+    float carry_weight = std::max(a_actor->GetActorValue(RE::ActorValue::kCarryWeight), 1.0f);
+    float modi         = a_actor->GetActorValue(RE::ActorValue::kInventoryWeight) / carry_weight;
     return a_baseCost + modi * (a_baseCost / 2);
 }
 
@@ -329,8 +330,8 @@ float StaminaCost::CalculateHorseSprintCost(RE::Actor* a_actor)
     if (!ActorValidAndNotGod(a_actor))
         return 0.f;
 
-    const float ret = a_actor->IsPlayerRef() ? CONFIG::stamina_cost_sprint_horse_player.GetValue()
-                                             : CONFIG::stamina_cost_sprint_horse_npc.GetValue();
+    float ret = a_actor->IsPlayerRef() ? CONFIG::stamina_cost_sprint_horse_player.GetValue()
+                                       : CONFIG::stamina_cost_sprint_horse_npc.GetValue();
     return ret;
 }
 
@@ -356,11 +357,23 @@ float StaminaCost::CalculateSwimCost(RE::Actor* a_actor)
     {
         return 0.F;
     }
-    const float base_swim_cost =
+    float base_swim_cost =
         a_actor->IsPlayerRef() ? CONFIG::stamina_cost_swim_player.GetValue() : CONFIG::stamina_cost_swim_npc.GetValue();
 
     return CalculateWeightModi(base_swim_cost, a_actor);
 }
+float StaminaCost::CalculateRunningCost(RE::Actor* a_actor)
+{
+
+    if (!ActorValidAndNotGod(a_actor))
+    {
+        return 0.F;
+    }
+    float base_running_cost = a_actor->IsPlayerRef() ? CONFIG::stamina_cost_running_player.GetValue()
+                                                     : CONFIG::stamina_cost_running_npc.GetValue();
+    return CalculateWeightModi(base_running_cost, a_actor);
+}
+
 
 void StaminaCost::ManageSwimStamina(RE::Actor* a_actor, float a_deltaTime)
 {
@@ -378,11 +391,10 @@ void StaminaCost::ManageSwimStamina(RE::Actor* a_actor, float a_deltaTime)
     {
         RE::ActorPtr rider{};
         a_actor->GetMountedBy(rider);
-
-        const auto apply_on   = rider ? rider.get() : a_actor;
-        const float base_cost = CalculateSwimCost(apply_on);
-        float cost            = base_cost * a_deltaTime;
-        const auto cond_item  = ActorUtil::GetWieldingWeapon(rider.get());
+        auto apply_on   = rider.get() ? rider.get() : a_actor;
+        float base_cost = CalculateSwimCost(apply_on);
+        float cost      = base_cost * a_deltaTime;
+        auto cond_item  = ActorUtil::GetWieldingWeapon(rider.get());
 
         RE::HandleEntryPoint(ENTRIES::swimStamEP, apply_on, cost, ENTRIES::swimStam, cond_item);
 
@@ -391,12 +403,50 @@ void StaminaCost::ManageSwimStamina(RE::Actor* a_actor, float a_deltaTime)
         return;
     }
 
-    const float default_cost = CalculateSwimCost(a_actor);
-    float reduce             = default_cost * a_deltaTime;
-    const auto weapon        = ActorUtil::GetWieldingWeapon(a_actor);
+    float default_cost = CalculateSwimCost(a_actor);
+    float reduce       = default_cost * a_deltaTime;
+    auto weapon        = ActorUtil::GetWieldingWeapon(a_actor);
 
     RE::HandleEntryPoint(ENTRIES::swimStamEP, a_actor, reduce, ENTRIES::swimStam, weapon);
 
     a_actor->DamageActorValue(RE::ActorValue::kStamina, reduce);
 }
+void StaminaCost::ManageRunningStamina(RE::Actor* a_actor, float a_deltaTime)
+{
+
+    if (!ActorValidAndNotGod(a_actor))
+    {
+        return;
+    }
+
+    if (!a_actor->IsRunning() || !ActorUtil::IsMoving(a_actor))
+    {
+        return;
+    }
+
+    if (a_actor->IsAMount())
+    {
+        RE::ActorPtr rider{};
+        a_actor->GetMountedBy(rider);
+        auto apply_on   = rider.get() ? rider.get() : a_actor;
+        float base_cost = CalculateRunningCost(apply_on);
+        float cost      = base_cost * a_deltaTime;
+        auto cond_item  = ActorUtil::GetWieldingWeapon(rider.get());
+
+        RE::HandleEntryPoint(ENTRIES::runStamEP, apply_on, cost, ENTRIES::runStam, cond_item);
+
+        a_actor->DamageActorValue(RE::ActorValue::kStamina, cost);
+        // return to not have it run on the rider as well and double apply it
+        return;
+    }
+
+    float default_cost = CalculateRunningCost(a_actor);
+    float reduce       = default_cost * a_deltaTime;
+    auto weapon        = ActorUtil::GetWieldingWeapon(a_actor);
+
+    RE::HandleEntryPoint(ENTRIES::runStamEP, a_actor, reduce, ENTRIES::runStam, weapon);
+
+    a_actor->DamageActorValue(RE::ActorValue::kStamina, reduce);
+}
+
 } // namespace EXCO

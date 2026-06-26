@@ -1,5 +1,4 @@
 #include "Menu/ingame-menu.h"
-#include "Menu/skse-menu.h"
 #include "SKSE/API.h"
 #include "Utility/util.h"
 #include "config.h"
@@ -25,7 +24,6 @@ SKSEPluginLoad(const SKSE::LoadInterface* a_skse)
     EXCO::HOOKS::InstallHooks();
 
     EXCO::CONFIG::UpdateSettings(false);
-    EXCO::SKSEMenu::RegisterSKSEMenu();
     SKSE::GetMessagingInterface()->RegisterListener(Listener);
 
     return true;

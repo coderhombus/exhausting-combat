@@ -1,5 +1,6 @@
 #pragma once
 
+#include "RE/A/Actor.h"
 namespace EXCO
 {
 struct StaminaCost
@@ -15,6 +16,7 @@ struct StaminaCost
     static float GetAttackStaminaCost(RE::Actor* a_actor);
     static float GetAttackStaminaCost_Safe(RE::ActorValueOwner* a_actor, RE::BGSAttackData* a_attack);
     static void ManageSwimStamina(RE::Actor* a_actor, float a_deltaTime);
+    static void ManageRunningStamina(RE::Actor* a_actor, float a_deltaTime);
     static void GetAPIModifier();
 
   private:
@@ -26,6 +28,7 @@ struct StaminaCost
     static float CalculateWeightModi(float a_baseCost, const RE::Actor* a_actor);
     static float CalculateHorseSprintCost(RE::Actor* a_actor);
     static float CalculateSwimCost(RE::Actor* a_actor);
+    static float CalculateRunningCost(RE::Actor* a_actor);
     static bool ActorValidAndNotGod(RE::Actor* a_actor);
 };
 } // namespace EXCO
