@@ -36,14 +36,17 @@ Notes -> for acrobatic, based on count -> if number of light armor (not counting
 
 ## Regen
 
-Regen rate scales with current health and stamina (can be inversely proprotional too - berserk mode) - Styyx Static Regeneration
+Regen rate scales with current health and stamina (can be inversely proprotional too - berserk mode) - Styyx Static Regeneration instead
 
 ## Equip Weight
 -[v] Instead of carry weight / inventory weight
 
 ## Moving type
--[v] Standing still or moving
+-[v] Standing still or moving -> into Styyx Static Regeneration instead
 
+
+###
+optional integration with acrobatics AV
 
 
 ---

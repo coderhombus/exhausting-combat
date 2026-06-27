@@ -206,7 +206,6 @@ float StaminaCost::ManageAttackStamina(RE::Actor* a_actor, const RE::BGSAttackDa
 
     else
     {
-        // const auto weapon = ActorUtil::GetWieldingWeapon(a_actor);
         const auto weapon = GetRelevantWeapon(a_actor);
         logs::info("global get weapon name: {}", weapon ? weapon->GetName() : "none");
         RE::HandleEntryPoint(ENTRIES::attackStamEP, a_actor, attack_cost, ENTRIES::attackStam, weapon);
@@ -648,7 +647,7 @@ void StaminaCost::ManageRunningStamina(RE::Actor* a_actor, float a_deltaTime)
         auto apply_on   = rider.get() ? rider.get() : a_actor;
         float base_cost = CalculateRunningCost(apply_on);
         float cost      = base_cost * a_deltaTime;
-        auto cond_item  = ActorUtil::GetWieldingWeapon(rider.get());
+        auto cond_item  = GetRelevantWeapon(rider.get());
 
         RE::HandleEntryPoint(ENTRIES::runStamEP, apply_on, cost, ENTRIES::runStam, cond_item);
 
@@ -659,7 +658,7 @@ void StaminaCost::ManageRunningStamina(RE::Actor* a_actor, float a_deltaTime)
 
     float default_cost = CalculateRunningCost(a_actor);
     float reduce       = default_cost * a_deltaTime;
-    auto weapon        = ActorUtil::GetWieldingWeapon(a_actor);
+    auto weapon        = GetRelevantWeapon(a_actor);
 
     RE::HandleEntryPoint(ENTRIES::runStamEP, a_actor, reduce, ENTRIES::runStam, weapon);
 
