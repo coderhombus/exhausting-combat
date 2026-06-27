@@ -230,6 +230,11 @@ bool StaminaCost::ManageBowStamina(RE::Actor* a_actor, RE::TESObjectWEAP* a_weap
 
     RE::HandleEntryPoint(ENTRIES::bowStamEP, a_actor, stamina_cost, ENTRIES::bowStam, a_weapon);
 
+    if (stamina_cost <= 0)
+    {
+        return true;
+    }
+
     RE::Actor* damaged_actor = Util::GetDamagedActorIfMount(a_actor);
     damaged_actor->DamageActorValue(RE::ActorValue::kStamina, stamina_cost);
 
@@ -652,7 +657,6 @@ void StaminaCost::ManageRunningStamina(RE::Actor* a_actor, float a_deltaTime)
         RE::HandleEntryPoint(ENTRIES::runStamEP, apply_on, cost, ENTRIES::runStam, cond_item);
 
         a_actor->DamageActorValue(RE::ActorValue::kStamina, cost);
-        // return to not have it run on the rider as well and double apply it
         return;
     }
 

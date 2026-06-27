@@ -218,7 +218,7 @@ void FireArrowHook::Call(RE::TESObjectWEAP* a_weapon, RE::TESObjectREFR* a_sourc
     const auto actor = a_source->As<RE::Actor>();
     if (!actor)
     {
-        return;
+        return func(a_weapon, a_source, a_overwriteAmmo, a_ammoEnch, a_poison);
     }
 
     if (StaminaCost::ManageBowStamina(actor, a_weapon))
