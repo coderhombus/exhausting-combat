@@ -23,7 +23,7 @@ static float GetEffectiveDelta(float a_deltaTime)
 
     if (const auto* timer = RE::BSTimer::GetSingleton())
         return timer->realTimeDelta;
-    return 0.016833;
+    return (float)0.016833;
 }
 
 void PlayerUpdateHook::Call(RE::PlayerCharacter* a_this, float a_deltaTime)
@@ -113,6 +113,48 @@ void CasterUpdateHook::Call(RE::ActorMagicCaster* a_this, float a_deltaTime)
     func(a_this, a_deltaTime);
 }
 
+
+static std::string AttackFlagsToString(const REX::EnumSet<RE::AttackData::AttackFlag, std::uint32_t>& flags)
+{
+    using Flag = RE::AttackData::AttackFlag;
+
+    std::vector<std::string_view> names;
+
+    if (flags.any(Flag::kIgnoreWeapon))
+        names.emplace_back("kIgnoreWeapon");
+
+    if (flags.any(Flag::kBashAttack))
+        names.emplace_back("kBashAttack");
+
+    if (flags.any(Flag::kPowerAttack))
+        names.emplace_back("kPowerAttack");
+
+    if (flags.any(Flag::kChargeAttack))
+        names.emplace_back("kChargeAttack");
+
+    if (flags.any(Flag::kRotatingAttack))
+        names.emplace_back("kRotatingAttack");
+
+    if (flags.any(Flag::kContinuousAttack))
+        names.emplace_back("kContinuousAttack");
+
+    if (flags.any(Flag::kOverrideData))
+        names.emplace_back("kOverrideData");
+
+    if (names.empty())
+        return "kNone";
+
+    std::string result;
+    for (std::size_t i = 0; i < names.size(); ++i)
+    {
+        if (i)
+            result += " | ";
+        result += names[i];
+    }
+
+    return result;
+}
+
 // event gets sent twice when moving diagonally backwards in either direction.
 // timer may prevent double attack cost. 10ms is too little. 60 should work fine
 // may go up to 150 even, but needs testing
@@ -138,7 +180,9 @@ float AttackStamCostHook::Call(RE::ActorValueOwner* a_this, RE::BGSAttackData* a
         time_allowed = now + ATTACK_COST_COOLDOWN;
     }
 
-    if (a_attack->data.flags.any(RE::AttackData::AttackFlag::kBashAttack, RE::AttackData::AttackFlag::kPowerAttack))
+    logs::info("-------------------------------------------------------------------");
+    logs::info("Attack flags: {}", AttackFlagsToString(a_attack->data.flags));
+    if (a_attack->data.flags.any(RE::AttackData::AttackFlag::kContinuousAttack))
     {
 
         return result;
@@ -156,8 +200,13 @@ float AttackStamCostHook::Call(RE::ActorValueOwner* a_this, RE::BGSAttackData* a
 
 float AttackChance::Call(RE::Actor* a_attacker, RE::Actor* a_victim, RE::BGSAttackData* a_attack)
 {
-    if (a_attacker->GetActorValue(RE::ActorValue::kStamina) < StaminaCost::GetAttackStaminaCost(a_attacker))
+    // logs::info("damageMult: {}", a_attack->data.damageMult);
+    if (a_attacker->GetActorValue(RE::ActorValue::kStamina) <
+        StaminaCost::GetAttackStaminaCost(a_attacker, a_attack->data.flags.any(RE::AttackData::AttackFlag::kBashAttack),
+                                          a_attack->data.flags.any(RE::AttackData::AttackFlag::kPowerAttack)))
+    {
         return 0;
+    }
 
     return func(a_attacker, a_victim, a_attack);
 }

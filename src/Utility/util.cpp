@@ -10,7 +10,7 @@ RE::Actor* EXCO::Util::GetDamagedActorIfMount(RE::Actor* a_actor)
         return a_actor;
 
     RE::ActorPtr honse{};
-    GetMount(a_actor, &honse);
+    a_actor->GetMount(honse);
     if (honse)
         return honse.get();
     return a_actor;

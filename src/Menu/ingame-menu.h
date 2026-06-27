@@ -26,6 +26,7 @@ struct StaminaTool : FUCK::ITool
   private:
     void DrawNPCs();
     void DrawPlayer();
+    void DrawAV();
     void DrawSystem();
 };
 inline StaminaTool g_stamTool;

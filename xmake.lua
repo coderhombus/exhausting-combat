@@ -20,7 +20,7 @@ set_warnings("allextra")
 -- xmake rules
 add_rules("mode.debug", "mode.releasedbg")
 set_defaultmode("releasedbg")
---add_rules("plugin.compile_commands.autoupdate", {outputdir = ".vscode"}) --useful for clion or vscode
+add_rules("plugin.compile_commands.autoupdate", {outputdir = ".vscode"}) --useful for clion or vscode
 add_rules("plugin.vsxmake.autoupdate")
 includes("xmake-rules.lua")
 
