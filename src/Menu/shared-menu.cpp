@@ -20,6 +20,7 @@ void EXCO::MENU::SHARED::LoadFromConfig()
     npc_sneak_cost            = CONFIG::stamina_cost_sneak_npc.GetValue();
     npc_bow_draw_cost         = CONFIG::stamina_cost_bow_drain_npc.GetValue();
     npc_bow_shoot_cost        = CONFIG::stamina_cost_bow_npc.GetValue();
+    npc_running_cost          = CONFIG::stamina_cost_running_npc.GetValue();
     // player
     player_attack_cost           = CONFIG::stamina_cost_attack_player.GetValue();
     player_attack_mult           = CONFIG::stamina_mult_attack_player.GetValue();
@@ -33,6 +34,7 @@ void EXCO::MENU::SHARED::LoadFromConfig()
     player_sneak_cost            = CONFIG::stamina_cost_sneak_player.GetValue();
     player_bow_draw_cost         = CONFIG::stamina_cost_bow_drain_player.GetValue();
     player_bow_shoot_cost        = CONFIG::stamina_cost_bow_player.GetValue();
+    player_running_cost          = CONFIG::stamina_cost_running_player.GetValue();
 }
 
 void EXCO::MENU::SHARED::RestoreDefaults()
@@ -52,6 +54,7 @@ void EXCO::MENU::SHARED::RestoreDefaults()
     npc_sneak_cost            = 2.F;
     npc_bow_draw_cost         = 5.F;
     npc_bow_shoot_cost        = 10.F;
+    npc_running_cost          = 1.F;
     // player
     player_attack_cost           = 9.F;
     player_attack_mult           = 1.414F;
@@ -65,6 +68,7 @@ void EXCO::MENU::SHARED::RestoreDefaults()
     player_sneak_cost            = 2.F;
     player_bow_draw_cost         = 5.F;
     player_bow_shoot_cost        = 10.F;
+    player_running_cost          = 1.F;
 
     stamina_av_mult_onehanded       = 0.F;
     stamina_av_mult_twohanded       = 0.F;
@@ -83,6 +87,12 @@ void EXCO::MENU::SHARED::RestoreDefaults()
 
     // jump and horse sprint do not work for NPCs afaik.
     // TODO: test anim event for npc jump as replacer
+    /*
+    CONFIG::stamina_cost_sprint_horse_npc.SetValue(npc_horseride_sprint_cost);
+    CONFIG::stamina_cost_jump_npc.SetValue(npc_jump_cost);
+    */
+    // jump and horse sprint do not work for NPCs afaik.
+    // TODO: test anim event for npc jump as replacer
 
     CONFIG::stamina_cost_attack_npc.SetValue(npc_attack_cost);
     CONFIG::stamina_mult_attack_npc.SetValue(npc_attack_mult);
@@ -94,7 +104,7 @@ void EXCO::MENU::SHARED::RestoreDefaults()
     CONFIG::stamina_cost_bow_drain_npc.SetValue(npc_bow_draw_cost);
     CONFIG::stamina_cost_bow_npc.SetValue(npc_bow_shoot_cost);
     CONFIG::equipped_weight_only_npc.SetValue(npc_weight_mode);
-
+    CONFIG::stamina_cost_running_npc.SetValue(npc_running_cost);
     // player
     CONFIG::stamina_cost_attack_player.SetValue(player_attack_cost);
     CONFIG::stamina_mult_attack_player.SetValue(player_attack_mult);
@@ -108,6 +118,7 @@ void EXCO::MENU::SHARED::RestoreDefaults()
     CONFIG::stamina_cost_sneak_player.SetValue(player_sneak_cost);
     CONFIG::stamina_cost_bow_drain_player.SetValue(player_bow_draw_cost);
     CONFIG::stamina_cost_bow_player.SetValue(player_bow_shoot_cost);
+    CONFIG::stamina_cost_running_player.SetValue(player_running_cost);
 
     CONFIG::stamina_av_mult_onehanded.SetValue(stamina_av_mult_onehanded);
     CONFIG::stamina_av_mult_twohanded.SetValue(stamina_av_mult_twohanded);
