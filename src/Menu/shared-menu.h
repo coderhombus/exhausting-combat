@@ -40,7 +40,8 @@ inline std::string npc_horseride_sprint_cost = "Horse Riding Cost##npc";
 inline std::string npc_bow_draw_cost         = "Bow Drawing Cost##npc";
 inline std::string npc_bow_shoot_cost        = "Bow Shooting Cost##npc";
 
-inline std::string npc_running_cost = "Running Cost##npc";
+inline std::string npc_running_cost  = "Running Cost##npc";
+inline std::string no_stam_exception = "No Stamina Exception##npc";
 
 // Player
 inline std::string player_weight_mode           = "Equipped Weight Only##player";
@@ -93,7 +94,9 @@ inline std::string npc_bow_draw_cost         = "Stamina cost for drawing a bow w
                                                "animation of crossbows!";
 inline std::string npc_bow_shoot_cost        = "Stamina cost for firing an arrow/bolt";
 
-inline std::string npc_running_cost = "Stamina cost for running";
+inline std::string npc_running_cost  = "Stamina cost for running";
+inline std::string no_stam_exception = "Allow NPCs with less stamina than the magicka cost of their spell to cast "
+                                       "without stamina cost (Some NPCs simply have 0 stamina in vanilla)";
 
 // Player
 inline std::string player_weight_mode           = "Only equipped items contribute to weight calculations";
@@ -107,8 +110,8 @@ inline std::string player_sneak_cost            = "Stamina cost for sneaking";
 inline std::string player_cast_cost             = "Stamina cost for casting";
 inline std::string player_jump_cost             = "Stamina cost for jumping";
 inline std::string player_horseride_sprint_cost = "Stamina cost for sprinting on horseback";
-inline std::string player_bow_draw_cost = "Stamina cost for drawing a bow without zoom. Affects the entire reload "
-                                          "animation of crossbows!";
+inline std::string player_bow_draw_cost         = "Stamina cost for drawing a bow without zoom. Affects the entire reload "
+                                                  "animation of crossbows!";
 
 inline std::string player_bow_shoot_cost = "Stamina cost for firing an arrow/bolt";
 inline std::string player_running_cost   = "Stamina cost for running";
@@ -159,6 +162,8 @@ inline float player_horseride_sprint_cost{};
 inline float player_bow_draw_cost{};
 inline float player_bow_shoot_cost{};
 inline float player_running_cost{};
+
+inline bool no_stam_exception{};
 
 inline float stamina_av_mult_onehanded{};
 inline float stamina_av_mult_twohanded{};

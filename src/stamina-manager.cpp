@@ -23,8 +23,7 @@ void StaminaCost::ManageSneakStamina(RE::Actor* a_actor, float a_deltaTime)
         return;
 
     auto cond_item     = GetRelevantWeapon(a_actor);
-    float default_cost = a_actor->IsPlayerRef() ? CONFIG::stamina_cost_sneak_player.GetValue()
-                                                : CONFIG::stamina_cost_sneak_npc.GetValue();
+    float default_cost = a_actor->IsPlayerRef() ? CONFIG::stamina_cost_sneak_player.GetValue() : CONFIG::stamina_cost_sneak_npc.GetValue();
 
     float multAV = AVScaling(a_actor, RE::ActorValue::kSneak);
     float reduce = default_cost * multAV * a_deltaTime;
@@ -131,6 +130,12 @@ bool StaminaCost::ManageCastStamina(RE::ActorMagicCaster* a_caster)
     float stamina_cost = CalculateCastCost(a_caster, spell);
 
     RE::HandleEntryPoint(ENTRIES::castStamEP, actor, stamina_cost, ENTRIES::castStam, spell);
+
+    if (CONFIG::exclude_no_stam_npc.GetValue() && actor->GetActorValueMax(RE::ActorValue::kStamina) < stamina_cost)
+    {
+        return true;
+    }
+
     RE::Actor* damaged_actor = Util::GetDamagedActorIfMount(actor);
 
     damaged_actor->DamageActorValue(RE::ActorValue::kStamina, stamina_cost);
@@ -146,6 +151,8 @@ bool StaminaCost::ManageConcentrationStamina(RE::ActorMagicCaster* a_caster, flo
     {
         return true;
     }
+
+
     if (ActorUtil::CasterIsCastingObject(a_caster))
     {
         return true;
@@ -169,7 +176,13 @@ bool StaminaCost::ManageConcentrationStamina(RE::ActorMagicCaster* a_caster, flo
 
     float stamina_cost = CalculateCastCost(a_caster, spell) * a_deltaTime;
 
+
     RE::HandleEntryPoint(ENTRIES::castStamEP, actor, stamina_cost, ENTRIES::castStam, spell);
+
+    if (CONFIG::exclude_no_stam_npc.GetValue() && actor->GetActorValueMax(RE::ActorValue::kStamina) < stamina_cost)
+    {
+        return true;
+    }
 
     RE::Actor* damaged_actor = Util::GetDamagedActorIfMount(actor);
     damaged_actor->DamageActorValue(RE::ActorValue::kStamina, stamina_cost);
@@ -197,8 +210,7 @@ float StaminaCost::ManageAttackStamina(RE::Actor* a_actor, const RE::BGSAttackDa
         RE::HandleEntryPoint(ENTRIES::attackStamEP, a_actor, attack_cost, ENTRIES::attackStam, torch);
     }
 
-    else if (auto* shield = a_actor->GetWornArmor(RE::BGSBipedObjectForm::BipedObjectSlot::kShield);
-             shield && isBash && shield->IsShield())
+    else if (auto* shield = a_actor->GetWornArmor(RE::BGSBipedObjectForm::BipedObjectSlot::kShield); shield && isBash && shield->IsShield())
     {
         logs::info("global get weapon name: {}", shield ? shield->GetName() : "none");
         RE::HandleEntryPoint(ENTRIES::attackStamEP, a_actor, attack_cost, ENTRIES::attackStam, shield);
@@ -223,8 +235,7 @@ bool StaminaCost::ManageBowStamina(RE::Actor* a_actor, RE::TESObjectWEAP* a_weap
 {
     if (!ActorValidAndNotGod(a_actor))
         return true;
-    float stamina_cost =
-        a_actor->IsPlayerRef() ? CONFIG::stamina_cost_bow_player.GetValue() : CONFIG::stamina_cost_bow_npc.GetValue();
+    float stamina_cost = a_actor->IsPlayerRef() ? CONFIG::stamina_cost_bow_player.GetValue() : CONFIG::stamina_cost_bow_npc.GetValue();
 
     stamina_cost *= AVScaling(a_actor, RE::ActorValue::kArchery);
 
@@ -251,8 +262,7 @@ void StaminaCost::ManageBowDraw(RE::Actor* a_actor, float a_deltaTime)
         return;
 
     auto equipped_weapon = skyrim_cast<RE::TESObjectWEAP*>(a_actor->GetEquippedObject(false));
-    float base_cost      = a_actor->IsPlayerRef() ? CONFIG::stamina_cost_bow_drain_player.GetValue()
-                                                  : CONFIG::stamina_cost_bow_drain_npc.GetValue();
+    float base_cost      = a_actor->IsPlayerRef() ? CONFIG::stamina_cost_bow_drain_player.GetValue() : CONFIG::stamina_cost_bow_drain_npc.GetValue();
     float multAV         = AVScaling(a_actor, RE::ActorValue::kArchery);
     float stam_cost      = base_cost * multAV * a_deltaTime;
 
@@ -393,13 +403,10 @@ RE::TESObjectWEAP* StaminaCost::GetRelevantWeapon(RE::Actor* a_actor)
 float StaminaCost::CalculateAttackCost(RE::Actor* a_actor, bool isBash, bool isPowerAttack)
 {
     // CONFIG values
-    const auto base_cost = a_actor->IsPlayerRef() ? CONFIG::stamina_cost_attack_player.GetValue()
-                                                  : CONFIG::stamina_cost_attack_npc.GetValue();
+    const auto base_cost = a_actor->IsPlayerRef() ? CONFIG::stamina_cost_attack_player.GetValue() : CONFIG::stamina_cost_attack_npc.GetValue();
 
-    const float mult = a_actor->IsPlayerRef() ? CONFIG::stamina_mult_attack_player.GetValue()
-                                              : CONFIG::stamina_mult_attack_npc.GetValue();
-    float multPA     = a_actor->IsPlayerRef() ? CONFIG::stamina_mult_pattack_player.GetValue()
-                                              : CONFIG::stamina_mult_pattack_npc.GetValue();
+    const float mult = a_actor->IsPlayerRef() ? CONFIG::stamina_mult_attack_player.GetValue() : CONFIG::stamina_mult_attack_npc.GetValue();
+    float multPA     = a_actor->IsPlayerRef() ? CONFIG::stamina_mult_pattack_player.GetValue() : CONFIG::stamina_mult_pattack_npc.GetValue();
 
     if (!isPowerAttack) // multPA only applies during a power attack
         multPA = 1.0f;
@@ -412,8 +419,7 @@ float StaminaCost::CalculateAttackCost(RE::Actor* a_actor, bool isBash, bool isP
         multAV *= AVScaling(a_actor, RE::ActorValue::kBlock);
 
     // Check Shields and Torches first
-    if (auto* shield = a_actor->GetWornArmor(RE::BGSBipedObjectForm::BipedObjectSlot::kShield);
-        shield && isBash && shield->IsShield())
+    if (auto* shield = a_actor->GetWornArmor(RE::BGSBipedObjectForm::BipedObjectSlot::kShield); shield && isBash && shield->IsShield())
     {
         // additionally scales with heavy/light armor skill depending on shield type
         if (shield->IsHeavyArmor())
@@ -451,15 +457,14 @@ float StaminaCost::CalculateAttackCost(RE::Actor* a_actor, bool isBash, bool isP
         logs::info("Item belonging to ({}) not identified", a_actor->GetName());
     }
 
-    const float modifier =
-        (1.0f + std::clamp((weight - MIN_WEIGHT) / (MAX_WEIGHT - MIN_WEIGHT), 0.0f, 1.0f)) * mult * multPA * multAV;
+    const float modifier = (1.0f + std::clamp((weight - MIN_WEIGHT) / (MAX_WEIGHT - MIN_WEIGHT), 0.0f, 1.0f)) * mult * multPA * multAV;
 
     const float result = base_cost * modifier;
 
     logs::info("mult: {}, multPA {}, weight_mult {}", mult, multPA,
                (1.0 + std::clamp((weight - MIN_WEIGHT) / (MAX_WEIGHT - MIN_WEIGHT), 0.0f, 1.0f)));
-    logs::info("base_cost = {}, multiplier = {}, stamina cost = {}, weight = {}, isBash = {}, isPA = {}", base_cost,
-               modifier, result, weight, isBash, isPowerAttack);
+    logs::info("base_cost = {}, multiplier = {}, stamina cost = {}, weight = {}, isBash = {}, isPA = {}", base_cost, modifier, result, weight, isBash,
+               isPowerAttack);
 
     return result;
 }
@@ -475,8 +480,7 @@ float StaminaCost::CalculateCastCost(const RE::ActorMagicCaster* a_caster, const
     if (!ActorValidAndNotGod(actor))
         return 0.f;
 
-    auto base_cost = actor->IsPlayerRef() ? CONFIG::stamina_cost_casting_player.GetValue()
-                                          : CONFIG::stamina_cost_casting_npc.GetValue();
+    auto base_cost = actor->IsPlayerRef() ? CONFIG::stamina_cost_casting_player.GetValue() : CONFIG::stamina_cost_casting_npc.GetValue();
     // prevent 0 magicka cost from costing 0 stamina
     auto mag_cost = std::max(a_spell->CalculateMagickaCost(actor), 1.0f);
 
@@ -509,8 +513,7 @@ float StaminaCost::CalculateJumpCost(RE::Actor* a_actor)
 {
     if (!ActorValidAndNotGod(a_actor))
         return 0.f;
-    float base_cost =
-        a_actor->IsPlayerRef() ? CONFIG::stamina_cost_jump_player.GetValue() : CONFIG::stamina_cost_jump_npc.GetValue();
+    float base_cost = a_actor->IsPlayerRef() ? CONFIG::stamina_cost_jump_player.GetValue() : CONFIG::stamina_cost_jump_npc.GetValue();
 
     // DumpSpecificVersion();
     return CalculateWeightModi(base_cost, a_actor);
@@ -520,8 +523,7 @@ float StaminaCost::CalculateSprintCost(RE::Actor* a_actor)
 {
     if (!ActorValidAndNotGod(a_actor))
         return 0.f;
-    float base_sprint_cost = a_actor->IsPlayerRef() ? CONFIG::stamina_cost_sprint_player.GetValue()
-                                                    : CONFIG::stamina_cost_sprint_npc.GetValue();
+    float base_sprint_cost = a_actor->IsPlayerRef() ? CONFIG::stamina_cost_sprint_player.GetValue() : CONFIG::stamina_cost_sprint_npc.GetValue();
 
     return CalculateWeightModi(base_sprint_cost, a_actor);
 }
@@ -532,8 +534,7 @@ float StaminaCost::CalculateWeightModi(float a_baseCost, const RE::Actor* a_acto
     const float carry_weight    = std::max(a_actor->GetActorValue(RE::ActorValue::kCarryWeight), 1.0f);
     const float inventoryWeight = a_actor->GetActorValue(RE::ActorValue::kInventoryWeight);
     const float equippedWeight  = const_cast<RE::Actor*>(a_actor)->GetEquippedWeight();
-    const bool playerOrNPC      = a_actor->IsPlayerRef() ? CONFIG::equipped_weight_only_player.GetValue()
-                                                         : CONFIG::equipped_weight_only_npc.GetValue();
+    const bool playerOrNPC = a_actor->IsPlayerRef() ? CONFIG::equipped_weight_only_player.GetValue() : CONFIG::equipped_weight_only_npc.GetValue();
 
     const float controlWeight = playerOrNPC ? equippedWeight : inventoryWeight;
     const float modi          = controlWeight / carry_weight;
@@ -551,8 +552,7 @@ float StaminaCost::CalculateHorseSprintCost(RE::Actor* a_actor)
     if (!ActorValidAndNotGod(a_actor))
         return 0.f;
 
-    float ret = a_actor->IsPlayerRef() ? CONFIG::stamina_cost_sprint_horse_player.GetValue()
-                                       : CONFIG::stamina_cost_sprint_horse_npc.GetValue();
+    float ret = a_actor->IsPlayerRef() ? CONFIG::stamina_cost_sprint_horse_player.GetValue() : CONFIG::stamina_cost_sprint_horse_npc.GetValue();
     return ret;
 }
 
@@ -578,8 +578,7 @@ float StaminaCost::CalculateSwimCost(RE::Actor* a_actor)
     {
         return 0.F;
     }
-    float base_swim_cost =
-        a_actor->IsPlayerRef() ? CONFIG::stamina_cost_swim_player.GetValue() : CONFIG::stamina_cost_swim_npc.GetValue();
+    float base_swim_cost = a_actor->IsPlayerRef() ? CONFIG::stamina_cost_swim_player.GetValue() : CONFIG::stamina_cost_swim_npc.GetValue();
 
     return CalculateWeightModi(base_swim_cost, a_actor);
 }
@@ -590,8 +589,7 @@ float StaminaCost::CalculateRunningCost(RE::Actor* a_actor)
     {
         return 0.F;
     }
-    float base_running_cost = a_actor->IsPlayerRef() ? CONFIG::stamina_cost_running_player.GetValue()
-                                                     : CONFIG::stamina_cost_running_npc.GetValue();
+    float base_running_cost = a_actor->IsPlayerRef() ? CONFIG::stamina_cost_running_player.GetValue() : CONFIG::stamina_cost_running_npc.GetValue();
     return CalculateWeightModi(base_running_cost, a_actor);
 }
 

@@ -53,5 +53,7 @@ inline REX::TOML::F32 stamina_av_mult_inventoryweight{STAM_AV, "fAVInventoryWeig
 inline REX::TOML::F32 stamina_cost_running_npc{STAM_NPC, "fNPCStaminaCostRunning", 1.F};
 inline REX::TOML::F32 stamina_cost_running_player{STAM_PL, "fPlayerStaminaCostRunning", 1.F};
 
+inline REX::TOML::Bool exclude_no_stam_npc{STAM_NPC, "bExcludeNoStaminaNPCs", true};
+
 void UpdateSettings(bool a_save = false);
 } // namespace EXCO::CONFIG
