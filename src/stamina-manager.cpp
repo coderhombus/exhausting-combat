@@ -481,6 +481,12 @@ float StaminaCost::CalculateCastCost(const RE::ActorMagicCaster* a_caster, const
         return 0.f;
 
     auto base_cost = actor->IsPlayerRef() ? CONFIG::stamina_cost_casting_player.GetValue() : CONFIG::stamina_cost_casting_npc.GetValue();
+
+    if (base_cost <= 0.0)
+    {
+        return base_cost;
+    }
+
     // prevent 0 magicka cost from costing 0 stamina
     auto mag_cost = std::max(a_spell->CalculateMagickaCost(actor), 1.0f);
 
