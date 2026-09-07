@@ -379,6 +379,10 @@ RE::ActorValue StaminaCost::AssociatedSkillWeapon(RE::TESObjectWEAP* weap)
 
 RE::TESObjectWEAP* StaminaCost::GetRelevantWeapon(RE::Actor* a_actor)
 {
+    if (!a_actor)
+    {
+        return nullptr;
+    }
     auto* left  = a_actor->GetEquippedObject(false);
     auto* right = a_actor->GetEquippedObject(true);
 
@@ -619,7 +623,7 @@ void StaminaCost::ManageSwimStamina(RE::Actor* a_actor, float a_deltaTime)
         auto apply_on   = rider.get() ? rider.get() : a_actor;
         float base_cost = CalculateSwimCost(apply_on);
         float cost      = base_cost * a_deltaTime;
-        auto cond_item  = GetRelevantWeapon(rider.get());
+        auto cond_item  = GetRelevantWeapon(apply_on);
 
         RE::HandleEntryPoint(ENTRIES::swimStamEP, apply_on, cost, ENTRIES::swimStam, cond_item);
 
@@ -656,7 +660,7 @@ void StaminaCost::ManageRunningStamina(RE::Actor* a_actor, float a_deltaTime)
         auto apply_on   = rider.get() ? rider.get() : a_actor;
         float base_cost = CalculateRunningCost(apply_on);
         float cost      = base_cost * a_deltaTime;
-        auto cond_item  = GetRelevantWeapon(rider.get());
+        auto cond_item  = GetRelevantWeapon(apply_on);
 
         RE::HandleEntryPoint(ENTRIES::runStamEP, apply_on, cost, ENTRIES::runStam, cond_item);
 
