@@ -279,6 +279,9 @@ float StaminaCost::GetAttackStaminaCost(RE::Actor* a_actor, bool isBash, bool is
 
 float StaminaCost::GetAttackStaminaCost_Safe(RE::ActorValueOwner* a_actor, RE::BGSAttackData* a_attack)
 {
+    if (!a_actor || !a_attack)
+        return 0.0f;
+
     const bool isBash        = a_attack->data.flags.any(RE::AttackData::AttackFlag::kBashAttack);
     const bool isPowerAttack = a_attack->data.flags.any(RE::AttackData::AttackFlag::kPowerAttack);
     const auto actor         = skyrim_cast<RE::Actor*>(a_actor);
@@ -291,6 +294,8 @@ static constexpr float MAX_WEIGHT = 33.0;
 
 float StaminaCost::AVScaling(RE::Actor* a_actor, RE::ActorValue a_akValue)
 {
+    if (!a_actor || a_akValue == RE::ActorValue::kNone)
+        return 1.0f;
     // scaling for 1H, 2H, Bash, Archery, Magic, Sneak, Acrobatics
     // Pass in  relevant skill, return relevant scaling
     // GetActorValue($1), scaled by CONFIG::SkillScaling($1)
