@@ -372,10 +372,13 @@ float StaminaCost::AVScaling(RE::Actor* a_actor, RE::ActorValue a_akValue)
 
 RE::ActorValue StaminaCost::AssociatedSkillWeapon(RE::TESObjectWEAP* weap)
 {
-    if (weap->IsOneHandedAxe() || weap->IsOneHandedDagger() || weap->IsOneHandedMace() || weap->IsOneHandedSword())
+    if (weap->IsOneHandedAxe() || weap->IsOneHandedDagger() || weap->IsOneHandedMace() || weap->IsOneHandedSword() || weap->IsHandToHandMelee() ||
+        weap->IsStaff())
         return RE::ActorValue::kOneHanded;
     else if (weap->IsTwoHandedAxe() || weap->IsTwoHandedSword())
         return RE::ActorValue::kTwoHanded;
+    else if (weap->IsBow() || weap->IsCrossbow())
+        return RE::ActorValue::kArchery;
     // add magic, archery, unarmed -> scale with Hand to Hand / Bruiser / Vicn Hand to Hand
 
     logs::warn("Weapon is not an Axe, Dagger, Mace, Sword, BattleAxe or Greatsword: {}", weap->GetFullName());
