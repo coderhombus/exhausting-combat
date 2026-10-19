@@ -98,8 +98,7 @@ void CasterUpdateHook::Call(RE::ActorMagicCaster* a_this, float a_deltaTime)
         return func(a_this, a_deltaTime);
     }
 
-    if (a_this->state.any(RE::MagicCaster::State::kCasting) &&
-        a_this->currentSpell->GetCastingType() == RE::MagicSystem::CastingType::kConcentration)
+    if (a_this->state.any(RE::MagicCaster::State::kCasting) && a_this->currentSpell->GetCastingType() == RE::MagicSystem::CastingType::kConcentration)
     {
         if (!StaminaCost::ManageConcentrationStamina(a_this, a_deltaTime))
             break_loop = 1;
@@ -211,8 +210,8 @@ float AttackChance::Call(RE::Actor* a_attacker, RE::Actor* a_victim, RE::BGSAtta
     return func(a_attacker, a_victim, a_attack);
 }
 
-void FireArrowHook::Call(RE::TESObjectWEAP* a_weapon, RE::TESObjectREFR* a_source, RE::TESAmmo* a_overwriteAmmo,
-                         RE::EnchantmentItem* a_ammoEnch, RE::AlchemyItem* a_poison)
+void FireArrowHook::Call(RE::TESObjectWEAP* a_weapon, RE::TESObjectREFR* a_source, RE::TESAmmo* a_overwriteAmmo, RE::EnchantmentItem* a_ammoEnch,
+                         RE::AlchemyItem* a_poison)
 {
 
     const auto actor = a_source->As<RE::Actor>();
