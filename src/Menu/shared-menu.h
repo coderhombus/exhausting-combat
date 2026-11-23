@@ -11,6 +11,7 @@ void RestoreDefaults();
 
 } // namespace SHARED
 
+// switch to constexpr const char*
 namespace TITLE
 {
 inline std::string mod_name         = "Exhausting Combat";

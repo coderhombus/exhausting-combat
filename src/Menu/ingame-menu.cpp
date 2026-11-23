@@ -5,6 +5,7 @@
 #include "config.h"
 #include "st-fui.h"
 
+// TODO use stringview instead
 namespace EXCO
 {
 
@@ -35,6 +36,7 @@ void FMenu::StaminaTool::OnOpen()
 }
 void FMenu::StaminaTool::OnClose()
 {
+    // TODO Settings save: OnClose saves the TOML every time, probably from the render thread. Save only when dirty.
     CONFIG::UpdateSettings(true);
 }
 void FMenu::StaminaTool::DrawNPCs()
@@ -45,13 +47,14 @@ void FMenu::StaminaTool::DrawNPCs()
     FUCK::Indent();
 
     FUCKUtil::Checkbox(LAB::npc_weight_mode.c_str(), VAR::npc_weight_mode, CONFIG::equipped_weight_only_npc, TOOL::npc_weight_mode.c_str());
-    FUCKUtil::Checkbox(LAB::npc_combat_only_mode.c_str(), VAR::npc_combat_only_mode, CONFIG::equipped_weight_only_npc,
-                       TOOL::npc_combat_only_mode.c_str());
+    FUCKUtil::Checkbox(LAB::npc_combat_only_mode.c_str(), VAR::npc_combat_only_mode, CONFIG::combat_only_npc, TOOL::npc_combat_only_mode.c_str());
     FUCKUtil::Checkbox(LAB::no_stam_exception.c_str(), VAR::no_stam_exception, CONFIG::exclude_no_stam_npc, TOOL::no_stam_exception.c_str());
     FUCKUtil::SliderFloat(LAB::npc_attack_cost.c_str(), VAR::npc_attack_cost, CONFIG::stamina_cost_attack_npc, 0.0, 50.0,
                           TOOL::npc_attack_cost.c_str());
     FUCKUtil::SliderFloat(LAB::npc_attack_mult.c_str(), VAR::npc_attack_mult, CONFIG::stamina_mult_attack_npc, 0.0, 50.0,
                           TOOL::npc_attack_mult.c_str());
+    FUCKUtil::SliderFloat(LAB::npc_pattack_mult.c_str(), VAR::npc_pattack_mult, CONFIG::stamina_mult_pattack_npc, 0.0, 50.0,
+                          TOOL::npc_pattack_mult.c_str());
     FUCKUtil::SliderFloat(LAB::npc_sprint_cost.c_str(), VAR::npc_sprint_cost, CONFIG::stamina_cost_sprint_npc, 0.0, 20.0,
                           TOOL::npc_sprint_cost.c_str());
     FUCKUtil::SliderFloat(LAB::npc_swim_cost.c_str(), VAR::npc_swim_cost, CONFIG::stamina_cost_swim_npc, 0.0, 20.0, TOOL::npc_swim_cost.c_str());
@@ -82,6 +85,8 @@ void FMenu::StaminaTool::DrawPlayer()
                        TOOL::player_combat_only_mode.c_str());
     FUCKUtil::SliderFloat(LAB::player_attack_cost.c_str(), VAR::player_attack_cost, CONFIG::stamina_cost_attack_player, 0.0, 50.0,
                           TOOL::player_attack_cost.c_str());
+    FUCKUtil::SliderFloat(LAB::player_pattack_cost.c_str(), VAR::player_pattack_cost, CONFIG::stamina_cost_pattack_player, 0.0, 50.0,
+                          TOOL::player_pattack_cost.c_str());
     FUCKUtil::SliderFloat(LAB::player_attack_mult.c_str(), VAR::player_attack_mult, CONFIG::stamina_mult_attack_player, 0.0, 50.0,
                           TOOL::player_attack_mult.c_str());
     FUCKUtil::SliderFloat(LAB::player_sprint_cost.c_str(), VAR::player_sprint_cost, CONFIG::stamina_cost_sprint_player, 0.0, 20.0,
@@ -108,7 +113,7 @@ void FMenu::StaminaTool::DrawAV()
 {
 
     using namespace MENU;
-    FUCKUtil::GreenTitleText("Stamina scaling by Actor Values, 5");
+    FUCKUtil::GreenTitleText("Stamina scaling by Actor Values", 5);
     FUCK::Indent();
     FUCKUtil::SliderFloat(LAB::stamina_av_mult_onehanded.c_str(), VAR::stamina_av_mult_onehanded, CONFIG::stamina_av_mult_onehanded, 0.0, 1.0,
                           TOOL::stamina_av_mult_onehanded.c_str());

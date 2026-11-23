@@ -1,3 +1,8 @@
+## review:
+PEPE availability
+- RequestInterface() calls GetModuleHandleA on every call when PEPE is absent, and HandleEntryPointImpl allocates two std::vectors per call.
+- Check once at kPostLoad and short-circuit.
+
 ## More tweaks
   - movement stamina with heavy and light armor
   - heavy armor and light armor is more stamina-intensive, but scales back with skill level

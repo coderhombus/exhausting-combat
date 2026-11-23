@@ -38,6 +38,21 @@ void EXCO::MENU::SHARED::LoadFromConfig()
     player_bow_draw_cost         = CONFIG::stamina_cost_bow_drain_player.GetValue();
     player_bow_shoot_cost        = CONFIG::stamina_cost_bow_player.GetValue();
     player_running_cost          = CONFIG::stamina_cost_running_player.GetValue();
+
+    stamina_av_mult_onehanded       = CONFIG::stamina_av_mult_onehanded.GetValue();
+    stamina_av_mult_twohanded       = CONFIG::stamina_av_mult_twohanded.GetValue();
+    stamina_av_mult_archery         = CONFIG::stamina_av_mult_archery.GetValue();
+    stamina_av_mult_block           = CONFIG::stamina_av_mult_block.GetValue();
+    stamina_av_mult_heavyarmor      = CONFIG::stamina_av_mult_heavyarmor.GetValue();
+    stamina_av_mult_lightarmor      = CONFIG::stamina_av_mult_lightarmor.GetValue();
+    stamina_av_mult_sneak           = CONFIG::stamina_av_mult_sneak.GetValue();
+    stamina_av_mult_alteration      = CONFIG::stamina_av_mult_alteration.GetValue();
+    stamina_av_mult_illusion        = CONFIG::stamina_av_mult_illusion.GetValue();
+    stamina_av_mult_destruction     = CONFIG::stamina_av_mult_destruction.GetValue();
+    stamina_av_mult_conjuration     = CONFIG::stamina_av_mult_conjuration.GetValue();
+    stamina_av_mult_restoration     = CONFIG::stamina_av_mult_restoration.GetValue();
+    stamina_av_mult_speedmult       = CONFIG::stamina_av_mult_speedmult.GetValue();
+    stamina_av_mult_inventoryweight = CONFIG::stamina_av_mult_inventoryweight.GetValue();
 }
 
 void EXCO::MENU::SHARED::RestoreDefaults()
@@ -74,7 +89,7 @@ void EXCO::MENU::SHARED::RestoreDefaults()
     player_bow_draw_cost         = 5.F;
     player_bow_shoot_cost        = 10.F;
     player_running_cost          = 1.F;
-    no_stam_exception            = false;
+    no_stam_exception            = true;
 
     stamina_av_mult_onehanded       = 0.F;
     stamina_av_mult_twohanded       = 0.F;

@@ -18,7 +18,6 @@ struct StaminaCost
     static void ManageSwimStamina(RE::Actor* a_actor, float a_deltaTime);
     static void ManageRunningStamina(RE::Actor* a_actor, float a_deltaTime);
     static void GetAPIModifier();
-    static bool isActorStaminaCostActiveOutOfCombat(RE::Actor* a_actor);
 
   private:
     // static inline std::mutex mut;
@@ -35,5 +34,13 @@ struct StaminaCost
     static RE::ActorValue AssociatedSkillWeapon(RE::TESObjectWEAP* weap);
     static RE::TESObjectWEAP* GetRelevantWeapon(RE::Actor* a_actor);
     static bool DumpSpecificVersion();
+    static bool isExcludeNoStamNPC(RE::Actor* a_actor, const float cost);
+    static bool isEnabledInfiniteStaminaOutOfCombat(RE::Actor* a_actor);
+
+    enum class
+    {
+        RH,
+        LH
+    } eEquipped;
 };
 } // namespace EXCO

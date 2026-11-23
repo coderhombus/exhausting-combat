@@ -11,13 +11,11 @@ inline constexpr auto MOD_VERSION = 1;
 inline constexpr auto MOD_NAME    = "Exhaustion Combat";
 } // namespace DATA
 
-inline constexpr auto TOML_DEFAULT   = "Data/SKSE/Plugins/exhausting-combat.toml";
-inline constexpr auto TOML_CUSTOM    = "Data/SKSE/Plugins/exhausting-combat_custom.toml";
-inline constexpr auto STAM_NPC       = "Stamina.NPC";
-inline constexpr auto STAM_PL        = "Stamina.Player";
-inline constexpr auto STAM_AV        = "Stamina.ActorValue";
-inline constexpr auto SETTING_PLAYER = "Player";
-inline constexpr auto SETTING_NPCS   = "NPCs";
+inline constexpr auto TOML_DEFAULT = "Data/SKSE/Plugins/exhausting-combat.toml";
+inline constexpr auto TOML_CUSTOM  = "Data/SKSE/Plugins/exhausting-combat_custom.toml";
+inline constexpr auto STAM_NPC     = "Stamina.NPC";
+inline constexpr auto STAM_PL      = "Stamina.Player";
+inline constexpr auto STAM_AV      = "Stamina.ActorValue";
 
 namespace ENTRIES
 {

@@ -44,7 +44,7 @@ struct AttackStamCostHook
     static inline REL::Relocation<decltype(Call)> func;
 };
 
-struct AttackChance
+struct AttackChanceHook
 {
     static float Call(RE::Actor* a_attacker, RE::Actor* a_victim, RE::BGSAttackData* a_attack);
     static inline REL::Relocation<decltype(Call)> func;
@@ -52,8 +52,8 @@ struct AttackChance
 
 struct FireArrowHook
 {
-    static void Call(RE::TESObjectWEAP* a_weapon, RE::TESObjectREFR* a_source, RE::TESAmmo* a_overwriteAmmo,
-                     RE::EnchantmentItem* a_ammoEnch, RE::AlchemyItem* a_poison);
+    static void Call(RE::TESObjectWEAP* a_weapon, RE::TESObjectREFR* a_source, RE::TESAmmo* a_overwriteAmmo, RE::EnchantmentItem* a_ammoEnch,
+                     RE::AlchemyItem* a_poison);
     static inline REL::Relocation<decltype(Call)> func;
 };
 } // namespace HOOKS

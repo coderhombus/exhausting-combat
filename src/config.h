@@ -2,18 +2,20 @@
 #include "REX/REX/TOML.h"
 #include "mod-data.h"
 
+// TODO clamp on load
+// TODO One source of truth please
 namespace EXCO::CONFIG
 {
 inline REX::TOML::Bool equipped_weight_only_npc{STAM_NPC, "bNPCEquippedWeightOnly", true};
 inline REX::TOML::Bool equipped_weight_only_player{STAM_PL, "bPlayerEquippedWeightOnly", true};
-inline REX::TOML::Bool combat_only_npc{STAM_NPC, "bNPCombatOnly", true};
+inline REX::TOML::Bool combat_only_npc{STAM_NPC, "bNPCCombatOnly", true};
 inline REX::TOML::Bool combat_only_player{STAM_PL, "bPlayerCombatOnly", true};
 
 inline REX::TOML::F32 stamina_cost_attack_npc{STAM_NPC, "fNPCStaminaCostAttack", 9.F};
 inline REX::TOML::F32 stamina_cost_attack_player{STAM_PL, "fPlayerStaminaCostAttack", 9.F};
 inline REX::TOML::F32 stamina_mult_attack_npc{STAM_NPC, "fNPCStaminaMultAttack", 1.414F};
 inline REX::TOML::F32 stamina_mult_attack_player{STAM_PL, "fPlayerStaminaMultAttack", 1.414F};
-inline REX::TOML::F32 stamina_mult_pattack_npc{STAM_NPC, "fNPCStaminaMultPAtack", 2.0F};
+inline REX::TOML::F32 stamina_mult_pattack_npc{STAM_NPC, "fNPCStaminaMultPAttack", 2.0F};
 inline REX::TOML::F32 stamina_mult_pattack_player{STAM_PL, "fPlayerStaminaMultPAttack", 2.0F};
 inline REX::TOML::F32 stamina_cost_jump_npc{STAM_NPC, "fNPCStaminaCostJump", 10.F};
 inline REX::TOML::F32 stamina_cost_jump_player{STAM_PL, "fPlayerStaminaCostJump", 15.F};

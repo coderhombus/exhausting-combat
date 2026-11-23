@@ -8,7 +8,7 @@
 
 #include <SimpleIni.h>
 #include <styyx-utils.h>
-#define REX_OPTION_TOML
+// #define REX_OPTION_TOML
 
 using namespace StyyxUtil;
 using namespace std::literals;

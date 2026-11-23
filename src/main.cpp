@@ -21,9 +21,9 @@ SKSEPluginLoad(const SKSE::LoadInterface* a_skse)
 {
     SKSE::Init(a_skse);
     SKSE::AllocTrampoline(14 * 4);
+    EXCO::CONFIG::UpdateSettings(false);
     EXCO::HOOKS::InstallHooks();
 
-    EXCO::CONFIG::UpdateSettings(false);
     SKSE::GetMessagingInterface()->RegisterListener(Listener);
 
     return true;

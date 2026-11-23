@@ -5,7 +5,7 @@
 #include "RE/C/Character.h"
 #include "RE/P/PlayerCharacter.h"
 #include "REL/Offset.h"
-#include "SKSE/Impl/PCH.h"
+// #include "SKSE/Impl/PCH.h"
 #include "Utility/util.h"
 #include "st-hooks.h"
 #include "stamina-manager.h"
@@ -21,6 +21,7 @@ static float GetEffectiveDelta(float a_deltaTime)
     if (a_deltaTime > 0.0f)
         return a_deltaTime;
 
+    // TODO use timer->delta instead?
     if (const auto* timer = RE::BSTimer::GetSingleton())
         return timer->realTimeDelta;
     return (float)0.016833;
@@ -36,6 +37,7 @@ void PlayerUpdateHook::Call(RE::PlayerCharacter* a_this, float a_deltaTime)
     func(a_this, a_deltaTime);
 }
 
+// TODO Cache/share repeated calculations and evaluation
 void NPCUpdateHook::Call(RE::Actor* a_this, float a_deltaTime)
 {
     const float r_delta = GetEffectiveDelta(a_deltaTime);
@@ -43,7 +45,7 @@ void NPCUpdateHook::Call(RE::Actor* a_this, float a_deltaTime)
     StaminaCost::ManageSprintStamina(a_this, r_delta);
     StaminaCost::ManageBowDraw(a_this, r_delta);
     StaminaCost::ManageSwimStamina(a_this, r_delta);
-    StaminaCost::ManageRunningStamina(a_this, a_deltaTime);
+    StaminaCost::ManageRunningStamina(a_this, r_delta);
     func(a_this, a_deltaTime);
 }
 
@@ -68,19 +70,13 @@ float JumpGetScaleHook::Call(RE::TESObjectREFR* a_this)
 
 void StartCastingHook::Call(RE::ActorMagicCaster* a_this)
 {
-    int break_loop = 0;
-
     if (!StaminaCost::ManageCastStamina(a_this))
-        break_loop = 1;
-
-    if (break_loop == 1)
     {
         a_this->InterruptCast(true);
+        return;
     }
-    else
-    {
-        func(a_this);
-    }
+
+    func(a_this);
 }
 
 void CasterUpdateHook::Call(RE::ActorMagicCaster* a_this, float a_deltaTime)
@@ -173,7 +169,7 @@ float AttackStamCostHook::Call(RE::ActorValueOwner* a_this, RE::BGSAttackData* a
 
         if (now < time_allowed)
         {
-            return result;
+            return 0.0f;
         }
 
         time_allowed = now + ATTACK_COST_COOLDOWN;
@@ -188,6 +184,7 @@ float AttackStamCostHook::Call(RE::ActorValueOwner* a_this, RE::BGSAttackData* a
     }
 
     // applies the attack cost to player and npc
+    // TODO wtf does this mean? 3? 15? what uses the global variable
     if (const auto res = StaminaCost::ManageAttackStamina(actor, a_attack); res > 0)
     {
         if (Util::stam_cost_pl_glob && actor->IsPlayerRef())
@@ -197,7 +194,7 @@ float AttackStamCostHook::Call(RE::ActorValueOwner* a_this, RE::BGSAttackData* a
     return result;
 }
 
-float AttackChance::Call(RE::Actor* a_attacker, RE::Actor* a_victim, RE::BGSAttackData* a_attack)
+float AttackChanceHook::Call(RE::Actor* a_attacker, RE::Actor* a_victim, RE::BGSAttackData* a_attack)
 {
     // logs::info("damageMult: {}", a_attack->data.damageMult);
     if (a_attacker->GetActorValue(RE::ActorValue::kStamina) <
@@ -233,7 +230,7 @@ void InstallHooks()
     HookUtils::WriteVFunc<RE::ActorMagicCaster, 0, 0x1d, CasterUpdateHook>();
     HookUtils::WriteCall5<JumpGetScaleHook>(RELOCATION_ID(36271, 37257), OFFSET(0x190, 0x17f));
     HookUtils::WriteCall5<AttackStamCostHook>(RELOCATION_ID(37650, 38603), OFFSET(0x16e, 0x171));
-    HookUtils::WriteCall5<AttackChance>(RELOCATION_ID(48139, 49170), OFFSET(0x2ae, 0x28d));
+    HookUtils::WriteCall5<AttackChanceHook>(RELOCATION_ID(48139, 49170), OFFSET(0x2ae, 0x28d));
     HookUtils::WriteCall5<FireArrowHook>(RELOCATION_ID(41778, 42859), OFFSET(0x133, 0x138));
 }
 } // namespace EXCO::HOOKS

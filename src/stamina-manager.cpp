@@ -6,29 +6,36 @@
 #include "Utility/util.h"
 #include "config.h"
 #include "mod-data.h"
-#include "versionlibdb.h"
-
+// TODO move AVScaling, CalculateWeightModi, the attack-cost formula and the cast-cost formula are pure math to independent header. Unit tests
 namespace EXCO
 {
 
-bool StaminaCost::isActorStaminaCostActiveOutOfCombat(RE::Actor* a_actor)
+bool StaminaCost::isExcludeNoStamNPC(RE::Actor* a_actor, const float cost)
+{
+    if (!a_actor->IsPlayerRef() && CONFIG::exclude_no_stam_npc.GetValue() && a_actor->GetActorValueMax(RE::ActorValue::kStamina) < cost)
+    {
+        return true;
+    }
+}
+
+bool StaminaCost::isEnabledInfiniteStaminaOutOfCombat(RE::Actor* a_actor)
 {
 
     bool stamina_cost_combat_only = a_actor->IsPlayerRef() ? CONFIG::combat_only_player.GetValue() : CONFIG::combat_only_npc.GetValue();
     if (!stamina_cost_combat_only)
-        return true; // stamina cost always active
+        return false; // stamina cost always active
 
     // only active in combat
     if (a_actor->IsInCombat())
     {
-        return true;
+        return false;
     }
     else
     {
-        return false;
+        return true;
     }
-    return true;
 }
+
 void StaminaCost::ManageSneakStamina(RE::Actor* a_actor, float a_deltaTime)
 {
     if (!ActorValidAndNotGod(a_actor))
@@ -40,7 +47,7 @@ void StaminaCost::ManageSneakStamina(RE::Actor* a_actor, float a_deltaTime)
     if (a_actor->GetActorValue(RE::ActorValue::kStamina) <= 0.f)
         return;
 
-    auto cond_item     = GetRelevantWeapon(a_actor);
+    auto cond_item     = GetRelevantWeapon(a_actor); // TODO: check if this is necessary
     float default_cost = a_actor->IsPlayerRef() ? CONFIG::stamina_cost_sneak_player.GetValue() : CONFIG::stamina_cost_sneak_npc.GetValue();
 
     float multAV = AVScaling(a_actor, RE::ActorValue::kSneak);
@@ -48,6 +55,7 @@ void StaminaCost::ManageSneakStamina(RE::Actor* a_actor, float a_deltaTime)
 
     // PEPE Perk
     RE::HandleEntryPoint(ENTRIES::sneakStamEP, a_actor, reduce, ENTRIES::sneakStam, cond_item);
+    reduce = std::max(0.f, reduce);
 
     a_actor->DamageActorValue(RE::ActorValue::kStamina, reduce);
 }
@@ -61,16 +69,13 @@ void StaminaCost::ManageJumpStamina(RE::Actor* a_actor)
 
     RE::Actor* damaged_actor = Util::GetDamagedActorIfMount(a_actor);
     RE::HandleEntryPoint(ENTRIES::jumpStamEP, a_actor, jump_cost, ENTRIES::jumpStam, cond_item);
+    jump_cost = std::max(0.f, jump_cost);
 
     damaged_actor->DamageActorValue(RE::ActorValue::kStamina, jump_cost);
 }
 
 void StaminaCost::ManageSprintStamina(RE::Actor* a_actor, float a_deltaTime)
 {
-    if (!ActorValidAndNotGod(a_actor))
-    {
-        return;
-    }
     if (!a_actor->IsSprinting() || !ActorUtil::IsMoving(a_actor))
     {
         return;
@@ -89,23 +94,32 @@ void StaminaCost::ManageSprintStamina(RE::Actor* a_actor, float a_deltaTime)
         RE::ActorPtr rider{};
         a_actor->GetMountedBy(rider);
 
-        auto apply_on   = rider ? rider.get() : a_actor;
+        auto apply_on = rider ? rider.get() : a_actor;
+
+        if (!ActorValidAndNotGod(apply_on))
+            return;
+
         float base_cost = CalculateHorseSprintCost(apply_on);
         float cost      = base_cost * a_deltaTime;
         auto cond_item  = GetRelevantWeapon(apply_on);
 
         RE::HandleEntryPoint(ENTRIES::mountSprintStamEP, apply_on, cost, ENTRIES::mountSprintStam, cond_item);
+        cost = std::max(0.f, cost);
 
         a_actor->DamageActorValue(RE::ActorValue::kStamina, cost);
         // return to not have it run on the rider as well and double apply it
         return;
     }
 
+    if (!ActorValidAndNotGod(a_actor))
+        return;
+
     float default_cost = CalculateSprintCost(a_actor);
     float reduce       = default_cost * a_deltaTime;
     auto weapon        = GetRelevantWeapon(a_actor);
 
     RE::HandleEntryPoint(ENTRIES::sprintStamEP, a_actor, reduce, ENTRIES::sprintStam, weapon);
+    reduce = std::max(0.f, reduce);
 
     a_actor->DamageActorValue(RE::ActorValue::kStamina, reduce);
 }
@@ -115,16 +129,16 @@ bool StaminaCost::ManageCastStamina(RE::ActorMagicCaster* a_caster)
     if (!a_caster)
         return true;
 
+    if (!a_caster->currentSpell)
+    {
+        return true;
+    }
     // not sure if casting type scroll is a thing, but better exclude it here
     if (ActorUtil::CasterIsCastingObject(a_caster))
     {
         return true;
     }
 
-    if (!a_caster->currentSpell)
-    {
-        return true;
-    }
 
     auto spell = a_caster->currentSpell;
 
@@ -148,11 +162,14 @@ bool StaminaCost::ManageCastStamina(RE::ActorMagicCaster* a_caster)
     float stamina_cost = CalculateCastCost(a_caster, spell);
 
     RE::HandleEntryPoint(ENTRIES::castStamEP, actor, stamina_cost, ENTRIES::castStam, spell);
+    stamina_cost = std::max(0.f, stamina_cost);
 
-    if (CONFIG::exclude_no_stam_npc.GetValue() && actor->GetActorValueMax(RE::ActorValue::kStamina) < stamina_cost)
-    {
+    if (isExcludeNoStamNPC(actor, stamina_cost))
         return true;
-    }
+
+
+    if (stamina_cost <= 0.f)
+        return true; // nothing charged, nothing to gate
 
     RE::Actor* damaged_actor = Util::GetDamagedActorIfMount(actor);
 
@@ -170,15 +187,16 @@ bool StaminaCost::ManageConcentrationStamina(RE::ActorMagicCaster* a_caster, flo
         return true;
     }
 
+    if (!a_caster->currentSpell)
+    {
+        return true;
+    }
 
     if (ActorUtil::CasterIsCastingObject(a_caster))
     {
         return true;
     }
-    if (!a_caster->currentSpell)
-    {
-        return true;
-    }
+
     auto actor = a_caster->GetCasterAsActor();
     if (!actor)
     {
@@ -196,11 +214,13 @@ bool StaminaCost::ManageConcentrationStamina(RE::ActorMagicCaster* a_caster, flo
 
 
     RE::HandleEntryPoint(ENTRIES::castStamEP, actor, stamina_cost, ENTRIES::castStam, spell);
+    stamina_cost = std::max(0.f, stamina_cost);
 
-    if (CONFIG::exclude_no_stam_npc.GetValue() && actor->GetActorValueMax(RE::ActorValue::kStamina) < stamina_cost)
-    {
+    if (isExcludeNoStamNPC(actor, stamina_cost))
         return true;
-    }
+
+    if (stamina_cost <= 0.f)
+        return true; // nothing charged, nothing to gate
 
     RE::Actor* damaged_actor = Util::GetDamagedActorIfMount(actor);
     damaged_actor->DamageActorValue(RE::ActorValue::kStamina, stamina_cost);
@@ -221,25 +241,6 @@ float StaminaCost::ManageAttackStamina(RE::Actor* a_actor, const RE::BGSAttackDa
     logs::info("bash={} leftAttack={} event={}", isBash, a_attack->IsLeftAttack(), a_attack->event.c_str());
     float attack_cost = CalculateAttackCost(a_actor, isBash, isPowerAttack);
 
-    if (auto* rightObj = a_actor->GetEquippedObject(true); isBash && rightObj && rightObj->As<RE::TESObjectLIGH>())
-    {
-        const auto torch = rightObj->As<RE::TESObjectLIGH>(); // was a pointer
-        logs::info("global get torch name: {}", torch ? torch->GetName() : "none");
-        RE::HandleEntryPoint(ENTRIES::attackStamEP, a_actor, attack_cost, ENTRIES::attackStam, torch);
-    }
-
-    else if (auto* shield = a_actor->GetWornArmor(RE::BGSBipedObjectForm::BipedObjectSlot::kShield); shield && isBash && shield->IsShield())
-    {
-        logs::info("global get weapon name: {}", shield ? shield->GetName() : "none");
-        RE::HandleEntryPoint(ENTRIES::attackStamEP, a_actor, attack_cost, ENTRIES::attackStam, shield);
-    }
-
-    else
-    {
-        const auto weapon = GetRelevantWeapon(a_actor);
-        logs::info("global get weapon name: {}", weapon ? weapon->GetName() : "none");
-        RE::HandleEntryPoint(ENTRIES::attackStamEP, a_actor, attack_cost, ENTRIES::attackStam, weapon);
-    }
     // RE::Actor* damaged_actor = Util::GetDamagedActorIfMount(a_actor);
     // damaged_actor->DamageActorValue(RE::ActorValue::kStamina, attack_cost);
     return attack_cost;
@@ -258,6 +259,7 @@ bool StaminaCost::ManageBowStamina(RE::Actor* a_actor, RE::TESObjectWEAP* a_weap
     stamina_cost *= AVScaling(a_actor, RE::ActorValue::kArchery);
 
     RE::HandleEntryPoint(ENTRIES::bowStamEP, a_actor, stamina_cost, ENTRIES::bowStam, a_weapon);
+    stamina_cost = std::max(0.f, stamina_cost);
 
     if (stamina_cost <= 0)
     {
@@ -279,12 +281,13 @@ void StaminaCost::ManageBowDraw(RE::Actor* a_actor, float a_deltaTime)
     if (!Util::IsBowDrawNoZoom(a_actor))
         return;
 
-    auto equipped_weapon = skyrim_cast<RE::TESObjectWEAP*>(a_actor->GetEquippedObject(false));
+    auto equipped_weapon = skyrim_cast<RE::TESObjectWEAP*>(a_actor->GetEquippedObject(eEquipped::RH));
     float base_cost      = a_actor->IsPlayerRef() ? CONFIG::stamina_cost_bow_drain_player.GetValue() : CONFIG::stamina_cost_bow_drain_npc.GetValue();
     float multAV         = AVScaling(a_actor, RE::ActorValue::kArchery);
     float stam_cost      = base_cost * multAV * a_deltaTime;
 
     RE::HandleEntryPoint(ENTRIES::bowDrawStamEP, a_actor, stam_cost, ENTRIES::bowDrawStam, equipped_weapon);
+    stam_cost = std::max(0.f, stam_cost);
 
     RE::Actor* damaged_actor = Util::GetDamagedActorIfMount(a_actor);
     damaged_actor->DamageActorValue(RE::ActorValue::kStamina, stam_cost);
@@ -409,14 +412,14 @@ RE::TESObjectWEAP* StaminaCost::GetRelevantWeapon(RE::Actor* a_actor)
     {
         return nullptr;
     }
-    auto* left  = a_actor->GetEquippedObject(false);
-    auto* right = a_actor->GetEquippedObject(true);
+    auto* left  = a_actor->GetEquippedObject(eEquipped::LH);
+    auto* right = a_actor->GetEquippedObject(eEquipped::RH);
 
     auto* leftWeap  = left ? left->As<RE::TESObjectWEAP>() : nullptr;
     auto* rightWeap = right ? right->As<RE::TESObjectWEAP>() : nullptr;
 
     // if dual wielding, or bashing with no weapons, yet both weapons are equipped (doesn't occur in vanilla)
-    if (leftWeap && rightWeap)
+    if (leftWeap && rightWeap) // TODO make this the currently swinging weapon
         return rightWeap;
     else if (leftWeap)
         return leftWeap;
@@ -426,12 +429,13 @@ RE::TESObjectWEAP* StaminaCost::GetRelevantWeapon(RE::Actor* a_actor)
     else
         // runs if attacking when leftWeap and rightWeap are non-weapon items or Dual Unarmed
         return nullptr;
-
-
-    return nullptr;
 }
+
 float StaminaCost::CalculateAttackCost(RE::Actor* a_actor, bool isBash, bool isPowerAttack)
 {
+    if (!a_actor)
+        return 0.0f;
+
     // CONFIG values
     const auto base_cost = a_actor->IsPlayerRef() ? CONFIG::stamina_cost_attack_player.GetValue() : CONFIG::stamina_cost_attack_npc.GetValue();
 
@@ -457,14 +461,14 @@ float StaminaCost::CalculateAttackCost(RE::Actor* a_actor, bool isBash, bool isP
         else if (shield->IsLightArmor())
             multAV *= AVScaling(a_actor, RE::ActorValue::kLightArmor);
         weight = std::max(shield->GetWeight(), 1.0f);
-        logs::info("Shield Bash: ({})", shield->GetName());
+        // logs::info("Shield Bash: ({})", shield->GetName());
     }
 
     // Check if this works with any other light sources / lanterns etc
-    else if (auto* rightObj = a_actor->GetEquippedObject(true); rightObj && rightObj->As<RE::TESObjectLIGH>())
+    else if (auto* leftObj = a_actor->GetEquippedObject(eEquipped::LH); leftObj && leftObj->As<RE::TESObjectLIGH>() && isBash)
     {
-        weight = std::max(rightObj->GetWeight(), 1.0f);
-        logs::info("Torch Bash: ({})", rightObj->GetName());
+        weight = std::max(leftObj->GetWeight(), 1.0f);
+        // logs::info("Torch Bash: ({})", leftObj->GetName());
     }
     // Weapon
     else if (auto const weap = GetRelevantWeapon(a_actor); weap && weap->As<RE::TESObjectWEAP>())
@@ -480,7 +484,7 @@ float StaminaCost::CalculateAttackCost(RE::Actor* a_actor, bool isBash, bool isP
         multAV *= AVScaling(a_actor, AssociatedSkillWeapon(weap));
 
         weight = std::max(weap->GetWeight(), 1.0f);
-        logs::info("Weapon: ({})", weap->GetName());
+        // logs::info("Weapon: ({})", weap->GetName());
     }
     else
     {
@@ -489,12 +493,38 @@ float StaminaCost::CalculateAttackCost(RE::Actor* a_actor, bool isBash, bool isP
 
     const float modifier = (1.0f + std::clamp((weight - MIN_WEIGHT) / (MAX_WEIGHT - MIN_WEIGHT), 0.0f, 1.0f)) * mult * multPA * multAV;
 
-    const float result = base_cost * modifier;
+    float result = base_cost * modifier;
 
-    logs::info("mult: {}, multPA {}, weight_mult {}", mult, multPA,
-               (1.0 + std::clamp((weight - MIN_WEIGHT) / (MAX_WEIGHT - MIN_WEIGHT), 0.0f, 1.0f)));
-    logs::info("base_cost = {}, multiplier = {}, stamina cost = {}, weight = {}, isBash = {}, isPA = {}", base_cost, modifier, result, weight, isBash,
-               isPowerAttack);
+    // logs::info("mult: {}, multPA {}, weight_mult {}", mult, multPA,
+    //            (1.0 + std::clamp((weight - MIN_WEIGHT) / (MAX_WEIGHT - MIN_WEIGHT), 0.0f, 1.0f)));
+    // logs::info("base_cost = {}, multiplier = {}, stamina cost = {}, weight = {}, isBash = {}, isPA = {}", base_cost, modifier, result, weight,
+    // isBash, isPowerAttack);
+
+
+    if (auto* leftObj = a_actor->GetEquippedObject(eEquipped::LH); isBash && leftObj && leftObj->As<RE::TESObjectLIGH>())
+    {
+        const auto torch = leftObj->As<RE::TESObjectLIGH>(); // was a pointer
+        logs::info("global get torch name: {}", torch ? torch->GetName() : "none");
+        RE::HandleEntryPoint(ENTRIES::attackStamEP, a_actor, result, ENTRIES::attackStam, torch);
+    }
+
+    else if (auto* shield = a_actor->GetWornArmor(RE::BGSBipedObjectForm::BipedObjectSlot::kShield); shield && isBash && shield->IsShield())
+    {
+        logs::info("global get weapon name: {}", shield ? shield->GetName() : "none");
+        RE::HandleEntryPoint(ENTRIES::attackStamEP, a_actor, result, ENTRIES::attackStam, shield);
+    }
+
+    else
+    {
+        const auto weapon = GetRelevantWeapon(a_actor);
+        logs::info("global get weapon name: {}", weapon ? weapon->GetName() : "none");
+        RE::HandleEntryPoint(ENTRIES::attackStamEP, a_actor, result, ENTRIES::attackStam, weapon);
+    }
+
+    result = std::max(0.f, result);
+
+    if (isExcludeNoStamNPC(a_actor, result))
+        return 0.0f;
 
     return result;
 }
@@ -528,22 +558,6 @@ float StaminaCost::CalculateCastCost(const RE::ActorMagicCaster* a_caster, const
     return cost * multAV;
 }
 
-bool StaminaCost::DumpSpecificVersion()
-{
-    VersionDb db;
-
-    // Try to load database of version 1.5.62.0 regardless of running executable version.
-    if (!db.Load(1, 6, 1170, 0))
-    {
-        logs::warn("Failed to load database for 1.6.1170.0!");
-        return false;
-    }
-
-    // Write out a file called offsets-1.5.62.0.txt where each line is the ID and offset.
-    db.Dump("offsets-1.6.1170.0.txt");
-    logs::info("Dumped offsets for 1.6.1170.0");
-    return true;
-}
 
 float StaminaCost::CalculateJumpCost(RE::Actor* a_actor)
 {
@@ -555,6 +569,7 @@ float StaminaCost::CalculateJumpCost(RE::Actor* a_actor)
     return CalculateWeightModi(base_cost, a_actor);
 }
 
+// TODO document where sprint cost is disabled (ESP??)
 float StaminaCost::CalculateSprintCost(RE::Actor* a_actor)
 {
     if (!ActorValidAndNotGod(a_actor))
@@ -569,7 +584,8 @@ float StaminaCost::CalculateWeightModi(float a_baseCost, const RE::Actor* a_acto
     // full weight adds 50% of the base
     const float carry_weight    = std::max(a_actor->GetActorValue(RE::ActorValue::kCarryWeight), 1.0f);
     const float inventoryWeight = a_actor->GetActorValue(RE::ActorValue::kInventoryWeight);
-    const float equippedWeight  = const_cast<RE::Actor*>(a_actor)->GetEquippedWeight();
+    // const float equippedWeight  = const_cast<RE::Actor*>(a_actor)->GetEquippedWeight();
+    const float equippedWeight = a_actor->GetEquippedWeight();
     const bool playerOrNPC = a_actor->IsPlayerRef() ? CONFIG::equipped_weight_only_player.GetValue() : CONFIG::equipped_weight_only_npc.GetValue();
 
     const float controlWeight = playerOrNPC ? equippedWeight : inventoryWeight;
@@ -606,7 +622,7 @@ bool StaminaCost::ActorValidAndNotGod(RE::Actor* a_actor)
         return false;
     }
 
-    return isActorStaminaCostActiveOutOfCombat(a_actor);
+    return !isEnabledInfiniteStaminaOutOfCombat(a_actor);
 }
 
 float StaminaCost::CalculateSwimCost(RE::Actor* a_actor)
@@ -634,10 +650,6 @@ float StaminaCost::CalculateRunningCost(RE::Actor* a_actor)
 void StaminaCost::ManageSwimStamina(RE::Actor* a_actor, float a_deltaTime)
 {
 
-    if (!ActorValidAndNotGod(a_actor))
-    {
-        return;
-    }
     if (!a_actor->IsSwimming() || !ActorUtil::IsMoving(a_actor))
     {
         return;
@@ -647,34 +659,38 @@ void StaminaCost::ManageSwimStamina(RE::Actor* a_actor, float a_deltaTime)
     {
         RE::ActorPtr rider{};
         a_actor->GetMountedBy(rider);
-        auto apply_on   = rider.get() ? rider.get() : a_actor;
+        auto apply_on = rider.get() ? rider.get() : a_actor;
+
+        if (!ActorValidAndNotGod(apply_on))
+            return;
+
         float base_cost = CalculateSwimCost(apply_on);
         float cost      = base_cost * a_deltaTime;
         auto cond_item  = GetRelevantWeapon(apply_on);
 
         RE::HandleEntryPoint(ENTRIES::swimStamEP, apply_on, cost, ENTRIES::swimStam, cond_item);
+        cost = std::max(0.f, cost);
 
         a_actor->DamageActorValue(RE::ActorValue::kStamina, cost);
         // return to not have it run on the rider as well and double apply it
         return;
     }
 
+    if (!ActorValidAndNotGod(a_actor))
+        return;
+
     float default_cost = CalculateSwimCost(a_actor);
     float reduce       = default_cost * a_deltaTime;
     auto weapon        = GetRelevantWeapon(a_actor);
 
     RE::HandleEntryPoint(ENTRIES::swimStamEP, a_actor, reduce, ENTRIES::swimStam, weapon);
+    reduce = std::max(0.f, reduce);
 
     a_actor->DamageActorValue(RE::ActorValue::kStamina, reduce);
 }
 void StaminaCost::ManageRunningStamina(RE::Actor* a_actor, float a_deltaTime)
 {
-
-    if (!ActorValidAndNotGod(a_actor))
-    {
-        return;
-    }
-
+    // TODO IsRunning() is just actorState1.running. Verify that sprint and run costs don't stack while sprinting.
     if (!a_actor->IsRunning() || !ActorUtil::IsMoving(a_actor))
     {
         return;
@@ -684,22 +700,31 @@ void StaminaCost::ManageRunningStamina(RE::Actor* a_actor, float a_deltaTime)
     {
         RE::ActorPtr rider{};
         a_actor->GetMountedBy(rider);
-        auto apply_on   = rider.get() ? rider.get() : a_actor;
+        auto apply_on = rider.get() ? rider.get() : a_actor;
+
+        if (!ActorValidAndNotGod(apply_on))
+            return;
+
         float base_cost = CalculateRunningCost(apply_on);
         float cost      = base_cost * a_deltaTime;
         auto cond_item  = GetRelevantWeapon(apply_on);
 
         RE::HandleEntryPoint(ENTRIES::runStamEP, apply_on, cost, ENTRIES::runStam, cond_item);
+        cost = std::max(0.f, cost);
 
         a_actor->DamageActorValue(RE::ActorValue::kStamina, cost);
         return;
     }
+
+    if (!ActorValidAndNotGod(a_actor))
+        return;
 
     float default_cost = CalculateRunningCost(a_actor);
     float reduce       = default_cost * a_deltaTime;
     auto weapon        = GetRelevantWeapon(a_actor);
 
     RE::HandleEntryPoint(ENTRIES::runStamEP, a_actor, reduce, ENTRIES::runStam, weapon);
+    reduce = std::max(0.f, reduce);
 
     a_actor->DamageActorValue(RE::ActorValue::kStamina, reduce);
 }
