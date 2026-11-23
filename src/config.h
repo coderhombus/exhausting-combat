@@ -6,6 +6,8 @@ namespace EXCO::CONFIG
 {
 inline REX::TOML::Bool equipped_weight_only_npc{STAM_NPC, "bNPCEquippedWeightOnly", true};
 inline REX::TOML::Bool equipped_weight_only_player{STAM_PL, "bPlayerEquippedWeightOnly", true};
+inline REX::TOML::Bool combat_only_npc{STAM_NPC, "bNPCombatOnly", true};
+inline REX::TOML::Bool combat_only_player{STAM_PL, "bPlayerCombatOnly", true};
 
 inline REX::TOML::F32 stamina_cost_attack_npc{STAM_NPC, "fNPCStaminaCostAttack", 9.F};
 inline REX::TOML::F32 stamina_cost_attack_player{STAM_PL, "fPlayerStaminaCostAttack", 9.F};

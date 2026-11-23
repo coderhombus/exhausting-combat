@@ -25,14 +25,15 @@ inline std::string system_section   = "System";
 namespace LAB
 {
 // NPCs
-inline std::string npc_weight_mode  = "Equipped Weight Only##npc";
-inline std::string npc_attack_cost  = "Attack Cost##npc";
-inline std::string npc_attack_mult  = "Attack Mult##npc";
-inline std::string npc_pattack_mult = "Power Attack Mult##npc";
-inline std::string npc_sprint_cost  = "Sprint Cost##npc";
-inline std::string npc_swim_cost    = "Swim Cost##npc";
-inline std::string npc_sneak_cost   = "Sneak Cost##npc";
-inline std::string npc_cast_cost    = "Casting Cost##npc";
+inline std::string npc_weight_mode      = "Equipped Weight Only##npc";
+inline std::string npc_combat_only_mode = "Combat Only##npc";
+inline std::string npc_attack_cost      = "Attack Cost##npc";
+inline std::string npc_attack_mult      = "Attack Mult##npc";
+inline std::string npc_pattack_mult     = "Power Attack Mult##npc";
+inline std::string npc_sprint_cost      = "Sprint Cost##npc";
+inline std::string npc_swim_cost        = "Swim Cost##npc";
+inline std::string npc_sneak_cost       = "Sneak Cost##npc";
+inline std::string npc_cast_cost        = "Casting Cost##npc";
 // not functional atm, don't expose in menu
 inline std::string npc_jump_cost = "Jumping Cost##npc";
 // may not be functional and no need to expose it in menu before testing it
@@ -45,6 +46,7 @@ inline std::string no_stam_exception = "No Stamina Exception##npc";
 
 // Player
 inline std::string player_weight_mode           = "Equipped Weight Only##player";
+inline std::string player_combat_only_mode      = "Combat Only##player";
 inline std::string player_attack_cost           = "Attack Cost##player";
 inline std::string player_attack_mult           = "Attack Mult##player";
 inline std::string player_pattack_mult          = "Power Attack Mult##player";
@@ -77,15 +79,16 @@ namespace TOOL
 {
 
 // NPCs
-inline std::string npc_weight_mode  = "Only equipped items contribute to weight calculations";
-inline std::string npc_attack_cost  = "Stamina cost for normal attacks";
-inline std::string npc_attack_mult  = "Stamina mult for normal attacks";
-inline std::string npc_pattack_mult = "Stamina mult for power attacks";
-inline std::string npc_sprint_cost  = "Stamina cost for Sprinting, replaces vanilla "
-                                      "sprint cost calculation. vanilla default 7";
-inline std::string npc_swim_cost    = "Stamina cost for swimming";
-inline std::string npc_sneak_cost   = "Stamina cost for sneaking";
-inline std::string npc_cast_cost    = "Stamina cost for casting";
+inline std::string npc_weight_mode      = "Only equipped items contribute to weight calculations";
+inline std::string npc_combat_only_mode = "Stamina consumption during combat only";
+inline std::string npc_attack_cost      = "Stamina cost for normal attacks";
+inline std::string npc_attack_mult      = "Stamina mult for normal attacks";
+inline std::string npc_pattack_mult     = "Stamina mult for power attacks";
+inline std::string npc_sprint_cost      = "Stamina cost for Sprinting, replaces vanilla "
+                                          "sprint cost calculation. vanilla default 7";
+inline std::string npc_swim_cost        = "Stamina cost for swimming";
+inline std::string npc_sneak_cost       = "Stamina cost for sneaking";
+inline std::string npc_cast_cost        = "Stamina cost for casting";
 // not functional atm, don't expose in menu
 inline std::string npc_jump_cost = "Stamina cost for jumping";
 // may not be functional and no need to expose it in menu before testing it
@@ -100,6 +103,7 @@ inline std::string no_stam_exception = "Allow NPCs with less stamina than the ma
 
 // Player
 inline std::string player_weight_mode           = "Only equipped items contribute to weight calculations";
+inline std::string player_combat_only_mode      = "Stamina consumption during combat only";
 inline std::string player_attack_cost           = "Stamina Cost for normal attacks";
 inline std::string player_attack_mult           = "Stamina Mult for normal attacks";
 inline std::string player_pattack_mult          = "Stamina Mult for power attacks";
@@ -136,6 +140,7 @@ namespace VAR
 {
 
 inline bool npc_weight_mode{};
+inline bool npc_combat_only_mode{};
 inline float npc_attack_cost{};
 inline float npc_attack_mult{};
 inline float npc_pattack_mult{};
@@ -150,6 +155,7 @@ inline float npc_bow_shoot_cost{};
 inline float npc_running_cost{};
 
 inline bool player_weight_mode{};
+inline bool player_combat_only_mode{};
 inline float player_attack_cost{};
 inline float player_attack_mult{};
 inline float player_pattack_mult{};

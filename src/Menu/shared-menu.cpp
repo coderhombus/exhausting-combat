@@ -16,6 +16,7 @@ void EXCO::MENU::SHARED::LoadFromConfig()
     npc_cast_cost             = CONFIG::stamina_cost_casting_npc.GetValue();
     npc_horseride_sprint_cost = CONFIG::stamina_cost_sprint_horse_npc.GetValue();
     npc_weight_mode           = CONFIG::equipped_weight_only_npc.GetValue();
+    npc_combat_only_mode      = CONFIG::combat_only_npc.GetValue();
     npc_jump_cost             = CONFIG::stamina_cost_jump_npc.GetValue();
     npc_sneak_cost            = CONFIG::stamina_cost_sneak_npc.GetValue();
     npc_bow_draw_cost         = CONFIG::stamina_cost_bow_drain_npc.GetValue();
@@ -31,6 +32,7 @@ void EXCO::MENU::SHARED::LoadFromConfig()
     player_cast_cost             = CONFIG::stamina_cost_casting_player.GetValue();
     player_horseride_sprint_cost = CONFIG::stamina_cost_sprint_horse_player.GetValue();
     player_weight_mode           = CONFIG::equipped_weight_only_player.GetValue();
+    player_combat_only_mode      = CONFIG::combat_only_player.GetValue();
     player_jump_cost             = CONFIG::stamina_cost_jump_player.GetValue();
     player_sneak_cost            = CONFIG::stamina_cost_sneak_player.GetValue();
     player_bow_draw_cost         = CONFIG::stamina_cost_bow_drain_player.GetValue();
@@ -51,6 +53,7 @@ void EXCO::MENU::SHARED::RestoreDefaults()
     npc_cast_cost             = 10.F;
     npc_horseride_sprint_cost = 7.F;
     npc_weight_mode           = true;
+    npc_combat_only_mode      = true;
     npc_jump_cost             = 10.F;
     npc_sneak_cost            = 2.F;
     npc_bow_draw_cost         = 5.F;
@@ -65,6 +68,7 @@ void EXCO::MENU::SHARED::RestoreDefaults()
     player_cast_cost             = 10.F;
     player_horseride_sprint_cost = 7.F;
     player_weight_mode           = true;
+    player_combat_only_mode      = true;
     player_jump_cost             = 10.F;
     player_sneak_cost            = 2.F;
     player_bow_draw_cost         = 5.F;
@@ -108,12 +112,15 @@ void EXCO::MENU::SHARED::RestoreDefaults()
     CONFIG::equipped_weight_only_npc.SetValue(npc_weight_mode);
     CONFIG::stamina_cost_running_npc.SetValue(npc_running_cost);
     CONFIG::exclude_no_stam_npc.SetValue(no_stam_exception);
+    CONFIG::combat_only_npc.SetValue(npc_combat_only_mode);
+
     // player
     CONFIG::stamina_cost_attack_player.SetValue(player_attack_cost);
     CONFIG::stamina_mult_attack_player.SetValue(player_attack_mult);
     CONFIG::stamina_mult_pattack_player.SetValue(player_pattack_mult);
     CONFIG::stamina_cost_sprint_horse_player.SetValue(player_horseride_sprint_cost);
     CONFIG::equipped_weight_only_player.SetValue(player_weight_mode);
+    CONFIG::combat_only_player.SetValue(player_combat_only_mode);
     CONFIG::stamina_cost_jump_player.SetValue(player_jump_cost);
     CONFIG::stamina_cost_swim_player.SetValue(player_swim_cost);
     CONFIG::stamina_cost_sprint_player.SetValue(player_sprint_cost);

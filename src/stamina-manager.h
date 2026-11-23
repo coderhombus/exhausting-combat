@@ -18,6 +18,7 @@ struct StaminaCost
     static void ManageSwimStamina(RE::Actor* a_actor, float a_deltaTime);
     static void ManageRunningStamina(RE::Actor* a_actor, float a_deltaTime);
     static void GetAPIModifier();
+    static bool isActorStaminaCostActiveOutOfCombat(RE::Actor* a_actor);
 
   private:
     // static inline std::mutex mut;

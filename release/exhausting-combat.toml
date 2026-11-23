@@ -1,5 +1,6 @@
 [Stamina.NPC]
 bNPCEquippedWeightOnly = true
+bNPCombatOnly = true
 fNPCStaminaCostJump = 10.0
 fNPCStaminaCostBow = 10.0
 fNPCStaminaCostSprint = 7.0
@@ -13,6 +14,7 @@ fNPCStaminaCostSwim = 5.0
 
 [Stamina.Player]
 bPlayerEquippedWeightOnly = true
+bPlayerCombatOnly =  true
 fPlayerStaminaCostJump = 10.0
 fPlayerStaminaCostBow = 10.0
 fPlayerStaminaCostSprint = 7.0

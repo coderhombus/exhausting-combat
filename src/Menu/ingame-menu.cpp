@@ -45,6 +45,8 @@ void FMenu::StaminaTool::DrawNPCs()
     FUCK::Indent();
 
     FUCKUtil::Checkbox(LAB::npc_weight_mode.c_str(), VAR::npc_weight_mode, CONFIG::equipped_weight_only_npc, TOOL::npc_weight_mode.c_str());
+    FUCKUtil::Checkbox(LAB::npc_combat_only_mode.c_str(), VAR::npc_combat_only_mode, CONFIG::equipped_weight_only_npc,
+                       TOOL::npc_combat_only_mode.c_str());
     FUCKUtil::Checkbox(LAB::no_stam_exception.c_str(), VAR::no_stam_exception, CONFIG::exclude_no_stam_npc, TOOL::no_stam_exception.c_str());
     FUCKUtil::SliderFloat(LAB::npc_attack_cost.c_str(), VAR::npc_attack_cost, CONFIG::stamina_cost_attack_npc, 0.0, 50.0,
                           TOOL::npc_attack_cost.c_str());
@@ -76,6 +78,8 @@ void FMenu::StaminaTool::DrawPlayer()
 
     FUCKUtil::Checkbox(LAB::player_weight_mode.c_str(), VAR::player_weight_mode, CONFIG::equipped_weight_only_player,
                        TOOL::player_weight_mode.c_str());
+    FUCKUtil::Checkbox(LAB::player_combat_only_mode.c_str(), VAR::player_combat_only_mode, CONFIG::combat_only_player,
+                       TOOL::player_combat_only_mode.c_str());
     FUCKUtil::SliderFloat(LAB::player_attack_cost.c_str(), VAR::player_attack_cost, CONFIG::stamina_cost_attack_player, 0.0, 50.0,
                           TOOL::player_attack_cost.c_str());
     FUCKUtil::SliderFloat(LAB::player_attack_mult.c_str(), VAR::player_attack_mult, CONFIG::stamina_mult_attack_player, 0.0, 50.0,

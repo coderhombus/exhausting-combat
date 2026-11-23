@@ -11,6 +11,24 @@
 namespace EXCO
 {
 
+bool StaminaCost::isActorStaminaCostActiveOutOfCombat(RE::Actor* a_actor)
+{
+
+    bool stamina_cost_combat_only = a_actor->IsPlayerRef() ? CONFIG::combat_only_player.GetValue() : CONFIG::combat_only_npc.GetValue();
+    if (!stamina_cost_combat_only)
+        return true; // stamina cost always active
+
+    // only active in combat
+    if (a_actor->IsInCombat())
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+    return true;
+}
 void StaminaCost::ManageSneakStamina(RE::Actor* a_actor, float a_deltaTime)
 {
     if (!ActorValidAndNotGod(a_actor))
@@ -587,7 +605,8 @@ bool StaminaCost::ActorValidAndNotGod(RE::Actor* a_actor)
     {
         return false;
     }
-    return true;
+
+    return isActorStaminaCostActiveOutOfCombat(a_actor);
 }
 
 float StaminaCost::CalculateSwimCost(RE::Actor* a_actor)
