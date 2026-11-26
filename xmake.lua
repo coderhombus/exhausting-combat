@@ -31,6 +31,14 @@ set_config("skyrim_ae", true)
 set_config("use-hook-utils", true)
 set_config("use-fuck", true)
 
+-- `xmake f --werror=y`: treat warnings as errors in this project's sources. Dependency headers
+-- included with <...> (CommonLib, styyx-utils, packages) are compiled as external, warning-free.
+option("werror")
+    set_default(false)
+    set_showmenu(true)
+    set_description("Treat warnings in this project's sources as errors")
+option_end()
+
 add_requires("toml11")
 add_requires("doctest")
 
@@ -52,6 +60,10 @@ target(mod_name)
     add_headerfiles("src/**.h")
     add_includedirs("src")
     set_pcxxheader("src/pch.h")
+    add_options("werror")
+    if has_config("werror") then
+        add_cxflags("/WX", "/external:anglebrackets", "/external:W0", {tools = {"cl", "clang_cl"}})
+    end
 
     after_build(function(target)
         local plugins = path.join(os.projectdir(), "Distr", "SKSE", "Plugins")

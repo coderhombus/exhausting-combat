@@ -2,7 +2,10 @@
 
 #include <array>
 
+// Third-party header we may not modify; silence its warnings here so --werror builds work.
+#pragma warning(push, 0)
 #include "API/PerkEntryPointExtenderAPI.h"
+#pragma warning(pop)
 #include "logging.h"
 #include "stamina/formulas.h"
 
