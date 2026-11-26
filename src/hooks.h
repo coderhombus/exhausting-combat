@@ -1,60 +1,14 @@
 #pragma once
 
-#include "REL/Relocation.h"
-namespace EXCO
-{
-namespace HOOKS
-{
+#include <cstddef>
 
-void InstallHooks();
-
-struct PlayerUpdateHook
+namespace ExhaustingCombat::Hooks
 {
-    static void Call(RE::PlayerCharacter* a_this, float a_deltaTime);
-    static inline REL::Relocation<decltype(Call)> func;
-};
+/// Bytes of SKSE trampoline Install() needs: one 14-byte branch per call hook.
+inline constexpr std::size_t kCallHookCount      = 4;
+inline constexpr std::size_t kBytesPerCallHook   = 14;
+inline constexpr std::size_t kTrampolineBytes    = kCallHookCount * kBytesPerCallHook;
 
-struct NPCUpdateHook
-{
-    static void Call(RE::Actor* a_this, float a_deltaTime);
-    static inline REL::Relocation<decltype(Call)> func;
-};
-
-struct JumpGetScaleHook
-{
-    static float Call(RE::TESObjectREFR* a_this);
-    static inline REL::Relocation<decltype(Call)> func;
-};
-
-struct StartCastingHook
-{
-    static void Call(RE::ActorMagicCaster* a_this);
-    static inline REL::Relocation<decltype(Call)> func;
-};
-
-struct CasterUpdateHook
-{
-    static void Call(RE::ActorMagicCaster* a_this, float a_deltaTime);
-    static inline REL::Relocation<decltype(Call)> func;
-};
-
-struct AttackStamCostHook
-{
-    static float Call(RE::ActorValueOwner* a_this, RE::BGSAttackData* a_attack);
-    static inline REL::Relocation<decltype(Call)> func;
-};
-
-struct AttackChanceHook
-{
-    static float Call(RE::Actor* a_attacker, RE::Actor* a_victim, RE::BGSAttackData* a_attack);
-    static inline REL::Relocation<decltype(Call)> func;
-};
-
-struct FireArrowHook
-{
-    static void Call(RE::TESObjectWEAP* a_weapon, RE::TESObjectREFR* a_source, RE::TESAmmo* a_overwriteAmmo, RE::EnchantmentItem* a_ammoEnch,
-                     RE::AlchemyItem* a_poison);
-    static inline REL::Relocation<decltype(Call)> func;
-};
-} // namespace HOOKS
-} // namespace EXCO
+/// Installs every hook. Requires SKSE::AllocTrampoline(kTrampolineBytes) first.
+void Install();
+}  // namespace ExhaustingCombat::Hooks

@@ -1,236 +1,183 @@
 #include "hooks.h"
 
-#include "RE/A/ActorMagicCaster.h"
-#include "RE/B/BGSAttackData.h"
-#include "RE/C/Character.h"
-#include "RE/P/PlayerCharacter.h"
-#include "REL/Offset.h"
-// #include "SKSE/Impl/PCH.h"
-#include "Utility/util.h"
-#include "st-hooks.h"
-#include "stamina-manager.h"
+#include <chrono>
 
+#include <RE/Skyrim.h>
+#include <SKSE/SKSE.h>
+#include <styyx-utils.h>
 
-namespace EXCO::HOOKS
+#include "logging.h"
+#include "stamina/costs.h"
+#include "stamina/rules.h"
+
+// Hook targets are Skyrim AE 1.6.1170 Address Library IDs and offsets (see plugin-info.h for the
+// runtime check). Each hook only translates engine arguments and calls into stamina/costs.
+
+namespace ExhaustingCombat::Hooks
 {
-
-// needed cause for NPCs, the update function appears to have a delta of 0.
-// always
-static float GetEffectiveDelta(float a_deltaTime)
+namespace
 {
-    if (a_deltaTime > 0.0f)
+// NPC update hooks receive a delta of 0 (always, as far as tested), so NPCs use the timer's
+// real-time delta instead. This ignores slow-time effects, unlike the player's delta.
+// Possible alternative after in-game testing: RE::BSTimer::delta (game time, respects slow-mo).
+constexpr float kFallbackFrameSeconds = 0.016833f;  // ~59.4 FPS, used only if BSTimer is missing
+
+float GetEffectiveDelta(float a_deltaTime)
+{
+    if (a_deltaTime > 0.0f) {
         return a_deltaTime;
-
-    // TODO use timer->delta instead?
-    if (const auto* timer = RE::BSTimer::GetSingleton())
+    }
+    if (const auto* timer = RE::BSTimer::GetSingleton()) {
         return timer->realTimeDelta;
-    return (float)0.016833;
+    }
+    return kFallbackFrameSeconds;
 }
 
-void PlayerUpdateHook::Call(RE::PlayerCharacter* a_this, float a_deltaTime)
+Stamina::AttackCooldown g_playerAttackCooldown;
+
+struct PlayerUpdateHook
 {
-    StaminaCost::ManageSneakStamina(a_this, a_deltaTime);
-    StaminaCost::ManageSprintStamina(a_this, a_deltaTime);
-    StaminaCost::ManageBowDraw(a_this, a_deltaTime);
-    StaminaCost::ManageSwimStamina(a_this, a_deltaTime);
-    StaminaCost::ManageRunningStamina(a_this, a_deltaTime);
-    func(a_this, a_deltaTime);
-}
-
-// TODO Cache/share repeated calculations and evaluation
-void NPCUpdateHook::Call(RE::Actor* a_this, float a_deltaTime)
-{
-    const float r_delta = GetEffectiveDelta(a_deltaTime);
-    StaminaCost::ManageSneakStamina(a_this, r_delta);
-    StaminaCost::ManageSprintStamina(a_this, r_delta);
-    StaminaCost::ManageBowDraw(a_this, r_delta);
-    StaminaCost::ManageSwimStamina(a_this, r_delta);
-    StaminaCost::ManageRunningStamina(a_this, r_delta);
-    func(a_this, a_deltaTime);
-}
-
-// does not work for a horse jumping.
-// i assume npcs use either a different branch in this function or a different
-// function fine for now since NPCs don't really jump and i call this a benefit
-// for having a horse
-float JumpGetScaleHook::Call(RE::TESObjectREFR* a_this)
-{
-    const auto scale = func(a_this);
-
-    auto* actor = a_this ? a_this->As<RE::Actor>() : nullptr;
-
-    if (!actor)
+    static void Call(RE::PlayerCharacter* a_this, float a_deltaTime)
     {
+        Stamina::ChargeContinuousCosts(a_this, a_deltaTime);
+        func(a_this, a_deltaTime);
+    }
+    static inline REL::Relocation<decltype(Call)> func;
+};
+
+struct NPCUpdateHook
+{
+    static void Call(RE::Actor* a_this, float a_deltaTime)
+    {
+        Stamina::ChargeContinuousCosts(a_this, GetEffectiveDelta(a_deltaTime));
+        func(a_this, a_deltaTime);
+    }
+    static inline REL::Relocation<decltype(Call)> func;
+};
+
+// Charges on the jump's "get scale" call. Does not fire for horse jumps; NPCs probably use a
+// different path (untested). Fine for now: free horse jumps are a perk of having a horse.
+struct JumpGetScaleHook
+{
+    static float Call(RE::TESObjectREFR* a_this)
+    {
+        const float scale = func(a_this);
+        if (auto* actor = a_this ? a_this->As<RE::Actor>() : nullptr) {
+            Stamina::ChargeJump(actor);
+        }
         return scale;
     }
+    static inline REL::Relocation<decltype(Call)> func;
+};
 
-    StaminaCost::ManageJumpStamina(actor);
-    return scale;
-}
-
-void StartCastingHook::Call(RE::ActorMagicCaster* a_this)
+struct StartCastingHook
 {
-    if (!StaminaCost::ManageCastStamina(a_this))
+    static void Call(RE::ActorMagicCaster* a_this)
     {
-        a_this->InterruptCast(true);
-        return;
+        if (a_this && !Stamina::ChargeSpellCast(a_this)) {
+            a_this->InterruptCast(true);
+            return;
+        }
+        func(a_this);
     }
+    static inline REL::Relocation<decltype(Call)> func;
+};
 
-    func(a_this);
-}
-
-void CasterUpdateHook::Call(RE::ActorMagicCaster* a_this, float a_deltaTime)
+// Concentration spells pay per frame here; StartCasting only fires once per cast.
+struct CasterUpdateHook
 {
-    if (!a_this)
+    static void Call(RE::ActorMagicCaster* a_this, float a_deltaTime)
     {
-        return func(a_this, a_deltaTime);
+        if (a_this && a_this->currentSpell && a_this->state.any(RE::MagicCaster::State::kCasting) &&
+            a_this->currentSpell->GetCastingType() == RE::MagicSystem::CastingType::kConcentration) {
+            const auto source = a_this->GetCastingSource();
+            if ((source == RE::MagicSystem::CastingSource::kLeftHand || source == RE::MagicSystem::CastingSource::kRightHand) &&
+                !Stamina::ChargeConcentration(a_this, a_deltaTime)) {
+                a_this->InterruptCast(true);
+            }
+        }
+        func(a_this, a_deltaTime);
     }
+    static inline REL::Relocation<decltype(Call)> func;
+};
 
-    const auto source = a_this->GetCastingSource();
-    int break_loop    = 0;
-
-    if (source != RE::MagicSystem::CastingSource::kLeftHand && source != RE::MagicSystem::CastingSource::kRightHand)
-    {
-        return func(a_this, a_deltaTime);
-    }
-
-    if (a_this->state.any(RE::MagicCaster::State::kCasting) && a_this->currentSpell->GetCastingType() == RE::MagicSystem::CastingType::kConcentration)
-    {
-        if (!StaminaCost::ManageConcentrationStamina(a_this, a_deltaTime))
-            break_loop = 1;
-    }
-
-    if (break_loop == 1)
-    {
-        a_this->InterruptCast(true);
-    }
-
-    func(a_this, a_deltaTime);
-}
-
-
-static std::string AttackFlagsToString(const REX::EnumSet<RE::AttackData::AttackFlag, std::uint32_t>& flags)
+struct AttackStaminaCostHook
 {
-    using Flag = RE::AttackData::AttackFlag;
-
-    std::vector<std::string_view> names;
-
-    if (flags.any(Flag::kIgnoreWeapon))
-        names.emplace_back("kIgnoreWeapon");
-
-    if (flags.any(Flag::kBashAttack))
-        names.emplace_back("kBashAttack");
-
-    if (flags.any(Flag::kPowerAttack))
-        names.emplace_back("kPowerAttack");
-
-    if (flags.any(Flag::kChargeAttack))
-        names.emplace_back("kChargeAttack");
-
-    if (flags.any(Flag::kRotatingAttack))
-        names.emplace_back("kRotatingAttack");
-
-    if (flags.any(Flag::kContinuousAttack))
-        names.emplace_back("kContinuousAttack");
-
-    if (flags.any(Flag::kOverrideData))
-        names.emplace_back("kOverrideData");
-
-    if (names.empty())
-        return "kNone";
-
-    std::string result;
-    for (std::size_t i = 0; i < names.size(); ++i)
+    static float Call(RE::ActorValueOwner* a_this, RE::BGSAttackData* a_attack)
     {
-        if (i)
-            result += " | ";
-        result += names[i];
-    }
-
-    return result;
-}
-
-// event gets sent twice when moving diagonally backwards in either direction.
-// timer may prevent double attack cost. 10ms is too little. 60 should work fine
-// may go up to 150 even, but needs testing
-static inline std::chrono::steady_clock::time_point time_allowed;
-static constexpr auto ATTACK_COST_COOLDOWN = std::chrono::milliseconds(60);
-float AttackStamCostHook::Call(RE::ActorValueOwner* a_this, RE::BGSAttackData* a_attack)
-{
-    const float result = func(a_this, a_attack);
-    const auto actor   = skyrim_cast<RE::Actor*>(a_this);
-
-    if (!actor)
-        return result;
-
-    if (actor->IsPlayerRef())
-    {
-        const auto now = std::chrono::steady_clock::now();
-
-        if (now < time_allowed)
-        {
-            return 0.0f;
+        const float vanillaCost = func(a_this, a_attack);
+        auto*       actor       = skyrim_cast<RE::Actor*>(a_this);
+        if (!actor || !a_attack) {
+            return vanillaCost;
         }
 
-        time_allowed = now + ATTACK_COST_COOLDOWN;
-    }
+        const bool isPlayer   = actor->IsPlayerRef();
+        const bool suppressed = isPlayer && !g_playerAttackCooldown.TryStart(Stamina::AttackCooldown::Clock::now());
+        const bool continuous = a_attack->data.flags.any(RE::AttackData::AttackFlag::kContinuousAttack);
+        const float modCost   = (suppressed || continuous) ? 0.0f : Stamina::ComputeAttackCost(actor, a_attack, Stamina::AttackCostUse::Charge);
+        const float result    = Stamina::ResolveAttackHookCost(vanillaCost, modCost, continuous, suppressed);
 
-    logs::info("-------------------------------------------------------------------");
-    logs::info("Attack flags: {}", AttackFlagsToString(a_attack->data.flags));
-    if (a_attack->data.flags.any(RE::AttackData::AttackFlag::kContinuousAttack))
-    {
-
+        if (isPlayer && modCost > 0.0f) {
+            Stamina::PublishPlayerAttackCost(modCost);
+        }
+        if (IsDebugEnabled() && (suppressed || continuous || modCost <= 0.0f)) {
+            logs::debug("[attack] {} vanilla={:.3f} mod={:.3f} -> {:.3f}{}{}", Describe(actor), vanillaCost, modCost, result,
+                        suppressed ? " (duplicate event within cooldown)" : "", continuous ? " (continuous attack: vanilla)" : "");
+        }
         return result;
     }
+    static inline REL::Relocation<decltype(Call)> func;
+};
 
-    // applies the attack cost to player and npc
-    // TODO wtf does this mean? 3? 15? what uses the global variable
-    if (const auto res = StaminaCost::ManageAttackStamina(actor, a_attack); res > 0)
-    {
-        if (Util::stam_cost_pl_glob && actor->IsPlayerRef())
-            Util::stam_cost_pl_glob->value = std::clamp(res, 3.f, 15.f);
-        return res;
-    }
-    return result;
-}
-
-float AttackChanceHook::Call(RE::Actor* a_attacker, RE::Actor* a_victim, RE::BGSAttackData* a_attack)
+// AI attack selection: an attack the attacker cannot afford gets a 0% chance.
+struct AttackChanceHook
 {
-    // logs::info("damageMult: {}", a_attack->data.damageMult);
-    if (a_attacker->GetActorValue(RE::ActorValue::kStamina) <
-        StaminaCost::GetAttackStaminaCost(a_attacker, a_attack->data.flags.any(RE::AttackData::AttackFlag::kBashAttack),
-                                          a_attack->data.flags.any(RE::AttackData::AttackFlag::kPowerAttack)))
+    static float Call(RE::Actor* a_attacker, RE::Actor* a_victim, RE::BGSAttackData* a_attack)
     {
-        return 0;
+        if (a_attacker && a_attack) {
+            const float cost = Stamina::ComputeAttackCost(a_attacker, a_attack, Stamina::AttackCostUse::Preview);
+            if (a_attacker->GetActorValue(RE::ActorValue::kStamina) < cost) {
+                return 0.0f;
+            }
+        }
+        return func(a_attacker, a_victim, a_attack);
     }
+    static inline REL::Relocation<decltype(Call)> func;
+};
 
-    return func(a_attacker, a_victim, a_attack);
-}
-
-void FireArrowHook::Call(RE::TESObjectWEAP* a_weapon, RE::TESObjectREFR* a_source, RE::TESAmmo* a_overwriteAmmo, RE::EnchantmentItem* a_ammoEnch,
-                         RE::AlchemyItem* a_poison)
+struct FireArrowHook
 {
-
-    const auto actor = a_source->As<RE::Actor>();
-    if (!actor)
+    static void Call(RE::TESObjectWEAP* a_weapon, RE::TESObjectREFR* a_source, RE::TESAmmo* a_overwriteAmmo, RE::EnchantmentItem* a_ammoEnchantment,
+                     RE::AlchemyItem* a_poison)
     {
-        return func(a_weapon, a_source, a_overwriteAmmo, a_ammoEnch, a_poison);
+        auto* actor = a_source ? a_source->As<RE::Actor>() : nullptr;
+        if (actor && !Stamina::ChargeBowShot(actor, a_weapon)) {
+            return;  // out of stamina: the arrow is not fired
+        }
+        func(a_weapon, a_source, a_overwriteAmmo, a_ammoEnchantment, a_poison);
     }
+    static inline REL::Relocation<decltype(Call)> func;
+};
+}  // namespace
 
-    if (StaminaCost::ManageBowStamina(actor, a_weapon))
-    {
-        func(a_weapon, a_source, a_overwriteAmmo, a_ammoEnch, a_poison);
-    }
-}
-void InstallHooks()
+void Install()
 {
-    HookUtils::WriteVFunc<RE::PlayerCharacter, 0, 0xad, PlayerUpdateHook>();
-    HookUtils::WriteVFunc<RE::Character, 0, 0xad, NPCUpdateHook>();
-    HookUtils::WriteVFunc<RE::ActorMagicCaster, 0, 0x06, StartCastingHook>();
-    HookUtils::WriteVFunc<RE::ActorMagicCaster, 0, 0x1d, CasterUpdateHook>();
-    HookUtils::WriteCall5<JumpGetScaleHook>(RELOCATION_ID(36271, 37257), OFFSET(0x190, 0x17f));
-    HookUtils::WriteCall5<AttackStamCostHook>(RELOCATION_ID(37650, 38603), OFFSET(0x16e, 0x171));
-    HookUtils::WriteCall5<AttackChanceHook>(RELOCATION_ID(48139, 49170), OFFSET(0x2ae, 0x28d));
-    HookUtils::WriteCall5<FireArrowHook>(RELOCATION_ID(41778, 42859), OFFSET(0x133, 0x138));
+    using StyyxUtil::HookUtils::WriteCall5;
+    using StyyxUtil::HookUtils::WriteVFunc;
+
+    // Virtual function hooks: Actor::Update (0xAD), MagicCaster StartCast (0x06) / Update (0x1D).
+    WriteVFunc<RE::PlayerCharacter, 0, 0xAD, PlayerUpdateHook>();
+    WriteVFunc<RE::Character, 0, 0xAD, NPCUpdateHook>();
+    WriteVFunc<RE::ActorMagicCaster, 0, 0x06, StartCastingHook>();
+    WriteVFunc<RE::ActorMagicCaster, 0, 0x1D, CasterUpdateHook>();
+
+    // Call-site hooks (AE IDs; SE IDs were 36271, 37650, 48139, 41778).
+    WriteCall5<JumpGetScaleHook>(REL::ID(37257), 0x17F);
+    WriteCall5<AttackStaminaCostHook>(REL::ID(38603), 0x171);
+    WriteCall5<AttackChanceHook>(REL::ID(49170), 0x28D);
+    WriteCall5<FireArrowHook>(REL::ID(42859), 0x138);
+    static_assert(kCallHookCount == 4, "update kCallHookCount when adding or removing WriteCall5 hooks");
+
+    logs::info("installed 4 virtual and {} call hooks", kCallHookCount);
 }
-} // namespace EXCO::HOOKS
+}  // namespace ExhaustingCombat::Hooks
