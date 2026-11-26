@@ -4,7 +4,7 @@
 
 #include "API/FUCK_API.h"
 #include "shared-menu.h"
-
+#include "../Settings/settings.h"
 
 namespace EXCO
 {
@@ -24,6 +24,7 @@ struct StaminaTool : FUCK::ITool
     void OnClose() override;
 
   private:
+    void DrawSlider(SETTINGS::FloatSetting& setting, SETTINGS::eSliderType type);
     void DrawNPCs();
     void DrawPlayer();
     void DrawAV();

@@ -1,0 +1,4 @@
+CompileFlags:
+  CompilationDatabase: .vscode
+Index:
+  Background: Skip

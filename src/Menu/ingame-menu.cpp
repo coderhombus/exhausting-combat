@@ -8,7 +8,40 @@
 // TODO use stringview instead
 namespace EXCO
 {
+void DrawSlider(SETTINGS::FloatSetting& setting, SETTINGS::eSliderType type)
+{
+    using namespace MENU;
+    switch (type) {
+        case:: SETTINGS::eSliderType::INT:
+            // FUCKUtil::SliderInt(
+            //     setting.label.data(),
+            //     setting.value,
+            //     setting.minValue,
+            //     setting.maxValue,
+            //     setting.description.data()
+            // );
+            break;
+        case:: SETTINGS::eSliderType::FLOAT:
+            FUCKUtil::SliderFloat(
+                setting.label.data(),
+                setting.tomlEntry,
+                setting.value,
+                setting.minValue,
+                setting.maxValue,
+                setting.description.data()
+            );
+            break;
+        case:: SETTINGS::eSliderType::BOOL:
+            FUCKUtil::Checkbox(
+                setting.label.data(),
+                setting.value,
+                setting.tomlEntry,
+                setting.description.data()
+            );
+            break;
 
+    }
+}
 void FMenu::StaminaTool::Draw()
 {
     if (FUCK::CollapsingHeader(MENU::TITLE::npc_section.c_str()))
@@ -85,10 +118,10 @@ void FMenu::StaminaTool::DrawPlayer()
                        TOOL::player_combat_only_mode.c_str());
     FUCKUtil::SliderFloat(LAB::player_attack_cost.c_str(), VAR::player_attack_cost, CONFIG::stamina_cost_attack_player, 0.0, 50.0,
                           TOOL::player_attack_cost.c_str());
-    FUCKUtil::SliderFloat(LAB::player_pattack_cost.c_str(), VAR::player_pattack_cost, CONFIG::stamina_cost_pattack_player, 0.0, 50.0,
-                          TOOL::player_pattack_cost.c_str());
     FUCKUtil::SliderFloat(LAB::player_attack_mult.c_str(), VAR::player_attack_mult, CONFIG::stamina_mult_attack_player, 0.0, 50.0,
                           TOOL::player_attack_mult.c_str());
+    FUCKUtil::SliderFloat(LAB::player_pattack_mult.c_str(), VAR::player_pattack_mult, CONFIG::stamina_mult_pattack_player, 0.0, 50.0,
+                          TOOL::player_pattack_mult.c_str());
     FUCKUtil::SliderFloat(LAB::player_sprint_cost.c_str(), VAR::player_sprint_cost, CONFIG::stamina_cost_sprint_player, 0.0, 20.0,
                           TOOL::player_sprint_cost.c_str());
     FUCKUtil::SliderFloat(LAB::player_swim_cost.c_str(), VAR::player_swim_cost, CONFIG::stamina_cost_swim_player, 0.0, 20.0,

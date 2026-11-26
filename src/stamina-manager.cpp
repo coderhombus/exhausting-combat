@@ -16,6 +16,7 @@ bool StaminaCost::isExcludeNoStamNPC(RE::Actor* a_actor, const float cost)
     {
         return true;
     }
+    return false;
 }
 
 bool StaminaCost::isEnabledInfiniteStaminaOutOfCombat(RE::Actor* a_actor)
@@ -281,7 +282,7 @@ void StaminaCost::ManageBowDraw(RE::Actor* a_actor, float a_deltaTime)
     if (!Util::IsBowDrawNoZoom(a_actor))
         return;
 
-    auto equipped_weapon = skyrim_cast<RE::TESObjectWEAP*>(a_actor->GetEquippedObject(eEquipped::RH));
+    auto equipped_weapon = skyrim_cast<RE::TESObjectWEAP*>(a_actor->GetEquippedObject(static_cast<bool>(eEquipped::RH)));
     float base_cost      = a_actor->IsPlayerRef() ? CONFIG::stamina_cost_bow_drain_player.GetValue() : CONFIG::stamina_cost_bow_drain_npc.GetValue();
     float multAV         = AVScaling(a_actor, RE::ActorValue::kArchery);
     float stam_cost      = base_cost * multAV * a_deltaTime;
@@ -412,33 +413,52 @@ RE::TESObjectWEAP* StaminaCost::GetRelevantWeapon(RE::Actor* a_actor)
     {
         return nullptr;
     }
-    auto* left  = a_actor->GetEquippedObject(eEquipped::LH);
-    auto* right = a_actor->GetEquippedObject(eEquipped::RH);
+    if (a_actor->IsHumanoid() && a_actor->IsAttacking())
+    {
+        auto weap = a_actor->GetMiddleHighProcess()->lastHitData->weapon;
+        if (weap)
+        {
+            logs::info("Ai Process Weapon {}", weap->GetFullName());
+        }
+        // logs::info("GetWieldingWeapon: {}, GetAttackingWeapon(): {}", ActorUtil::GetWieldingWeapon(a_actor)->GetFullName(), a_actor->GetAttackingWeapon()->GetDisplayName());
+        return ActorUtil::GetWieldingWeapon(a_actor);
+    }
+
+    auto* left  = a_actor->GetEquippedObject(static_cast<bool>(eEquipped::LH));
+    auto* right = a_actor->GetEquippedObject(static_cast<bool>(eEquipped::RH));
 
     auto* leftWeap  = left ? left->As<RE::TESObjectWEAP>() : nullptr;
     auto* rightWeap = right ? right->As<RE::TESObjectWEAP>() : nullptr;
 
     // if dual wielding, or bashing with no weapons, yet both weapons are equipped (doesn't occur in vanilla)
     if (leftWeap && rightWeap) // TODO make this the currently swinging weapon
-        return rightWeap;
+        {
+            logs::info("GetRelevantWeapon Non Attack: {}", rightWeap->GetFullName());
+            return rightWeap;
+        }
     else if (leftWeap)
-        return leftWeap;
+        {
+            logs::info("GetRelevantWeapon Non Attack: {}", leftWeap->GetFullName());
+            return leftWeap;
+        }
     else if (rightWeap)
         //  could be staff in left hand, unarmed in right
-        return rightWeap;
+        {
+            logs::info("GetRelevantWeapon Non Attack: {}", rightWeap->GetFullName());
+                return rightWeap;
+        }
     else
         // runs if attacking when leftWeap and rightWeap are non-weapon items or Dual Unarmed
         return nullptr;
 }
 
-float StaminaCost::CalculateAttackCost(RE::Actor* a_actor, bool isBash, bool isPowerAttack)
+float StaminaCost::CalculateAttackCost_old(RE::Actor* a_actor, bool isBash, bool isPowerAttack)
 {
     if (!a_actor)
         return 0.0f;
 
     // CONFIG values
     const auto base_cost = a_actor->IsPlayerRef() ? CONFIG::stamina_cost_attack_player.GetValue() : CONFIG::stamina_cost_attack_npc.GetValue();
-
     const float mult = a_actor->IsPlayerRef() ? CONFIG::stamina_mult_attack_player.GetValue() : CONFIG::stamina_mult_attack_npc.GetValue();
     float multPA     = a_actor->IsPlayerRef() ? CONFIG::stamina_mult_pattack_player.GetValue() : CONFIG::stamina_mult_pattack_npc.GetValue();
 
@@ -461,14 +481,14 @@ float StaminaCost::CalculateAttackCost(RE::Actor* a_actor, bool isBash, bool isP
         else if (shield->IsLightArmor())
             multAV *= AVScaling(a_actor, RE::ActorValue::kLightArmor);
         weight = std::max(shield->GetWeight(), 1.0f);
-        // logs::info("Shield Bash: ({})", shield->GetName());
+        logs::info("Shield Bash: ({})", shield->GetName());
     }
 
     // Check if this works with any other light sources / lanterns etc
-    else if (auto* leftObj = a_actor->GetEquippedObject(eEquipped::LH); leftObj && leftObj->As<RE::TESObjectLIGH>() && isBash)
+    else if (auto* leftObj = a_actor->GetEquippedObject(static_cast<bool>(eEquipped::LH)); leftObj && leftObj->As<RE::TESObjectLIGH>() && isBash)
     {
         weight = std::max(leftObj->GetWeight(), 1.0f);
-        // logs::info("Torch Bash: ({})", leftObj->GetName());
+        logs::info("Torch Bash: ({})", leftObj->GetName());
     }
     // Weapon
     else if (auto const weap = GetRelevantWeapon(a_actor); weap && weap->As<RE::TESObjectWEAP>())
@@ -484,24 +504,20 @@ float StaminaCost::CalculateAttackCost(RE::Actor* a_actor, bool isBash, bool isP
         multAV *= AVScaling(a_actor, AssociatedSkillWeapon(weap));
 
         weight = std::max(weap->GetWeight(), 1.0f);
-        // logs::info("Weapon: ({})", weap->GetName());
+        logs::info("Weapon: ({})", weap->GetName());
     }
     else
     {
         logs::info("Item belonging to ({}) not identified", a_actor->GetName());
     }
 
-    const float modifier = (1.0f + std::clamp((weight - MIN_WEIGHT) / (MAX_WEIGHT - MIN_WEIGHT), 0.0f, 1.0f)) * mult * multPA * multAV;
+    float result = base_cost * GetWeightMultiplier(weight) * mult * multPA * multAV;
 
-    float result = base_cost * modifier;
-
-    // logs::info("mult: {}, multPA {}, weight_mult {}", mult, multPA,
-    //            (1.0 + std::clamp((weight - MIN_WEIGHT) / (MAX_WEIGHT - MIN_WEIGHT), 0.0f, 1.0f)));
-    // logs::info("base_cost = {}, multiplier = {}, stamina cost = {}, weight = {}, isBash = {}, isPA = {}", base_cost, modifier, result, weight,
-    // isBash, isPowerAttack);
+    logs::info("mult: {}, multPA {}, weight_mult {}", mult, multPA, GetWeightMultiplier(weight) );
+    logs::info("base_cost = {}, multiplier = {}, stamina cost = {}, weight = {}, isBash = {}, isPA = {}", base_cost, result / base_cost, result, weight, isBash, isPowerAttack);
 
 
-    if (auto* leftObj = a_actor->GetEquippedObject(eEquipped::LH); isBash && leftObj && leftObj->As<RE::TESObjectLIGH>())
+    if (auto* leftObj = a_actor->GetEquippedObject(static_cast<bool>(eEquipped::LH)); isBash && leftObj && leftObj->As<RE::TESObjectLIGH>())
     {
         const auto torch = leftObj->As<RE::TESObjectLIGH>(); // was a pointer
         logs::info("global get torch name: {}", torch ? torch->GetName() : "none");
@@ -584,8 +600,7 @@ float StaminaCost::CalculateWeightModi(float a_baseCost, const RE::Actor* a_acto
     // full weight adds 50% of the base
     const float carry_weight    = std::max(a_actor->GetActorValue(RE::ActorValue::kCarryWeight), 1.0f);
     const float inventoryWeight = a_actor->GetActorValue(RE::ActorValue::kInventoryWeight);
-    // const float equippedWeight  = const_cast<RE::Actor*>(a_actor)->GetEquippedWeight();
-    const float equippedWeight = a_actor->GetEquippedWeight();
+    const float equippedWeight  = const_cast<RE::Actor*>(a_actor)->GetEquippedWeight();
     const bool playerOrNPC = a_actor->IsPlayerRef() ? CONFIG::equipped_weight_only_player.GetValue() : CONFIG::equipped_weight_only_npc.GetValue();
 
     const float controlWeight = playerOrNPC ? equippedWeight : inventoryWeight;
@@ -728,5 +743,110 @@ void StaminaCost::ManageRunningStamina(RE::Actor* a_actor, float a_deltaTime)
 
     a_actor->DamageActorValue(RE::ActorValue::kStamina, reduce);
 }
+
+float StaminaCost::GetWeightMultiplier(float weight)
+{
+    if (MAX_WEIGHT <= MIN_WEIGHT)
+        return 1.0f;
+    const float normalized = std::clamp((weight - MIN_WEIGHT) / (MAX_WEIGHT - MIN_WEIGHT), 0.0f, 1.0f);
+    return 1.0f + normalized;
+}
+
+StaminaCost::eEquipTypeCustom StaminaCost::GetEquipTypeCustom(RE::Actor* a_actor, bool isBash)
+{
+    if (!a_actor) return eEquipTypeCustom::NONE;
+
+    if (auto* shield = a_actor->GetWornArmor(RE::BGSBipedObjectForm::BipedObjectSlot::kShield); shield && isBash && shield->IsShield())
+        return eEquipTypeCustom::SHIELD;
+
+    if (auto* leftObj = a_actor->GetEquippedObject(static_cast<bool>(eEquipped::LH)); leftObj && leftObj->As<RE::TESObjectLIGH>() && isBash)
+        return eEquipTypeCustom::TORCH;
+
+    if (auto const weap = GetRelevantWeapon(a_actor); weap && weap->As<RE::TESObjectWEAP>())
+        return eEquipTypeCustom::WEAPON;
+
+    return eEquipTypeCustom::NONE;
+}
+
+float StaminaCost::CalculateAttackCost(RE::Actor* a_actor, bool isBash, bool isPowerAttack)
+{
+    if (!a_actor)
+        return 0.0f;
+    const auto base_cost = a_actor->IsPlayerRef() ? CONFIG::stamina_cost_attack_player.GetValue() : CONFIG::stamina_cost_attack_npc.GetValue();
+    const float mult = a_actor->IsPlayerRef() ? CONFIG::stamina_mult_attack_player.GetValue() : CONFIG::stamina_mult_attack_npc.GetValue();
+
+    float multPA     = a_actor->IsPlayerRef() ? CONFIG::stamina_mult_pattack_player.GetValue() : CONFIG::stamina_mult_pattack_npc.GetValue();
+    float multAV = 1.0f; // stacking multiplier from actor values
+    float weight = 1.0f; // item weight resolved below
+
+    if (!isPowerAttack) // multPA only applies during a power attack
+        multPA = 1.0f;
+
+    if (isBash)
+        multAV *= AVScaling(a_actor, RE::ActorValue::kBlock);
+
+    auto handleAttackCost = [&](auto* item) {
+            weight = std::max(item->GetWeight(), 1.0f);
+            float result = std::max(0.0f, base_cost * GetWeightMultiplier(weight) * mult * multPA * multAV);
+            logs::info("mult: {}, multPA {}, weight_mult {}", mult, multPA, GetWeightMultiplier(weight));
+            logs::info("base_cost = {}, multiplier = {}, stamina cost = {}, weight = {}, isBash = {}, isPA = {}",base_cost, result / base_cost, result, weight, isBash, isPowerAttack);
+            RE::HandleEntryPoint(ENTRIES::attackStamEP, a_actor, result, ENTRIES::attackStam, item);
+            return result;
+        };
+
+    float result = 0.0f;
+
+    switch (GetEquipTypeCustom(a_actor, isBash))
+    {
+        case eEquipTypeCustom::SHIELD:
+        {
+            auto* shield = a_actor->GetWornArmor(RE::BGSBipedObjectForm::BipedObjectSlot::kShield);
+            if(shield)
+            {
+                if (shield->IsHeavyArmor())
+                    multAV *= AVScaling(a_actor, RE::ActorValue::kHeavyArmor);
+                else if (shield->IsLightArmor())
+                    multAV *= AVScaling(a_actor, RE::ActorValue::kLightArmor);
+                result = handleAttackCost(shield);
+                logs::info("Shield Bash: ({})", shield->GetName());
+            }
+            break;
+        }
+        case eEquipTypeCustom::TORCH:
+        {
+            auto* leftObj = a_actor->GetEquippedObject(static_cast<bool>(eEquipped::LH));
+            auto* torch = leftObj->As<RE::TESObjectLIGH>();
+            if(torch)
+            {
+                result = handleAttackCost(torch);
+                logs::info("Torch Bash: ({})", torch->GetName());
+            }
+            break;
+        }
+        case eEquipTypeCustom::WEAPON:
+        {
+            auto weap = GetRelevantWeapon(a_actor);
+            if(weap)
+            {
+                // scales with 1H/2H skill depending on weapon type
+                multAV *= AVScaling(a_actor, AssociatedSkillWeapon(weap));
+                result = handleAttackCost(weap);
+                logs::info("Weapon: ({})", weap->GetName());
+            }
+            break;
+        }
+        case eEquipTypeCustom::NONE:
+        {
+            logs::info("Item belonging to ({}) not identified", a_actor->GetName());
+            break;
+        }
+    }
+
+    if (isExcludeNoStamNPC(a_actor, result))
+        return 0.0f;
+
+    return result;
+}
+
 
 } // namespace EXCO

@@ -20,8 +20,24 @@ struct StaminaCost
     static void GetAPIModifier();
 
   private:
+
+
+    enum class eEquipped
+    {
+        RH = false,
+        LH = true
+    };
+
+    enum class eEquipTypeCustom
+    {
+        NONE,
+        SHIELD,
+        TORCH,
+        WEAPON
+    };
     // static inline std::mutex mut;
     static float CalculateAttackCost(RE::Actor* a_actor, bool isBash, bool isPowerAttack);
+    static float CalculateAttackCost_old(RE::Actor* a_actor, bool isBash, bool isPowerAttack);
     static float CalculateCastCost(const RE::ActorMagicCaster* a_caster, const RE::MagicItem* a_spell);
     static float CalculateJumpCost(RE::Actor* a_actor);
     static float CalculateSprintCost(RE::Actor* a_actor);
@@ -29,6 +45,7 @@ struct StaminaCost
     static float CalculateHorseSprintCost(RE::Actor* a_actor);
     static float CalculateSwimCost(RE::Actor* a_actor);
     static float CalculateRunningCost(RE::Actor* a_actor);
+    static float GetWeightMultiplier(float weight);
     static bool ActorValidAndNotGod(RE::Actor* a_actor);
     static float AVScaling(RE::Actor* a_actor, RE::ActorValue a_akValue);
     static RE::ActorValue AssociatedSkillWeapon(RE::TESObjectWEAP* weap);
@@ -36,11 +53,7 @@ struct StaminaCost
     static bool DumpSpecificVersion();
     static bool isExcludeNoStamNPC(RE::Actor* a_actor, const float cost);
     static bool isEnabledInfiniteStaminaOutOfCombat(RE::Actor* a_actor);
+    static eEquipTypeCustom GetEquipTypeCustom(RE::Actor* a_actor, bool isBash);
 
-    enum class
-    {
-        RH,
-        LH
-    } eEquipped;
 };
 } // namespace EXCO
