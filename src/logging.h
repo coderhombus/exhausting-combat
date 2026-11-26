@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <cstdint>
 #include <format>
 #include <string>
@@ -18,13 +19,22 @@ namespace logs = SKSE::log;
 ///  warn     recoverable problems: invalid config values, missing optional dependencies
 ///  error    failures that disable a feature
 ///  critical the plugin will not run (unsupported runtime)
+///
+/// Flushing: every line at debug or above is flushed immediately, so one-off events (attacks,
+/// casts, jumps) are in the file as soon as they happen. Per-frame trace lines are flushed at
+/// least once a second instead of per line, which would be too slow.
 inline void SetLogLevel(std::int32_t a_level)
 {
     const auto level = static_cast<spdlog::level::level_enum>(a_level);
     if (auto* logger = spdlog::default_logger_raw()) {
         logger->set_level(level);
-        logger->flush_on(level < spdlog::level::info ? spdlog::level::info : level);
+        logger->flush_on(level < spdlog::level::debug ? spdlog::level::debug : level);
     }
+    static const bool periodicFlushStarted = [] {
+        spdlog::flush_every(std::chrono::seconds(1));
+        return true;
+    }();
+    (void)periodicFlushStarted;
 }
 
 /// Cheap check for hot paths, so arguments of disabled trace logs are not even computed.
@@ -40,14 +50,14 @@ inline void SetLogLevel(std::int32_t a_level)
     return logger && logger->should_log(spdlog::level::debug);
 }
 
-/// "Lydia (000A2C94)" style identifier for log lines.
+/// Display name for log lines ("Lydia", "Iron Dagger"); "<none>" for null.
 [[nodiscard]] inline std::string Describe(const RE::TESObjectREFR* a_ref)
 {
     if (!a_ref) {
         return "<none>";
     }
     const char* name = a_ref->GetName();
-    return std::format("{} ({:08X})", name && name[0] ? name : "<unnamed>", a_ref->GetFormID());
+    return name && name[0] ? name : "<unnamed>";
 }
 
 [[nodiscard]] inline std::string Describe(const RE::TESForm* a_form)
@@ -56,6 +66,6 @@ inline void SetLogLevel(std::int32_t a_level)
         return "<none>";
     }
     const char* name = a_form->GetName();
-    return std::format("{} ({:08X})", name && name[0] ? name : "<unnamed>", a_form->GetFormID());
+    return name && name[0] ? name : "<unnamed>";
 }
 }  // namespace ExhaustingCombat

@@ -53,30 +53,42 @@ const Config::ActorProfile& ProfileFor(const RE::Actor& a_actor)
     return Config::Get().Profile(a_actor.IsPlayerRef());
 }
 
-bool ShouldChargeStamina(const RE::Actor* a_actor)
+GateResult EvaluateGate(const RE::Actor& a_actor)
 {
-    if (!a_actor) {
-        return false;
-    }
     const ChargeGateFacts facts{
-        .isPlayerInGodMode = a_actor->IsPlayerRef() && RE::PlayerCharacter::IsGodMode(),
-        .combatOnly        = ProfileFor(*a_actor).combatOnly.GetValue(),
-        .inCombat          = a_actor->IsInCombat(),
+        .isPlayerInGodMode = a_actor.IsPlayerRef() && RE::PlayerCharacter::IsGodMode(),
+        .combatOnly        = ProfileFor(a_actor).combatOnly.GetValue(),
+        .inCombat          = a_actor.IsInCombat(),
     };
-    return Stamina::ShouldChargeStamina(facts);
+    return Stamina::EvaluateGate(facts);
 }
 
-RE::Actor& PayerFor(RE::Actor& a_actor)
+bool ShouldChargeStamina(const RE::Actor* a_actor)
 {
-    if (!a_actor.IsPlayerRef()) {
-        return a_actor;
+    return a_actor && EvaluateGate(*a_actor) == GateResult::Charge;
+}
+
+ChargeParties ResolveParties(RE::Actor& a_eventActor)
+{
+    ChargeParties parties;
+    parties.actor = &a_eventActor;
+    parties.payer = &a_eventActor;
+
+    const MountRole role = GetMountRole(a_eventActor);
+    if (role == MountRole::Mount) {
+        parties.riderHandle = GetRider(a_eventActor);
+    } else if (role == MountRole::Rider) {
+        a_eventActor.GetMount(parties.mountHandle);
     }
-    RE::ActorPtr mount;
-    if (a_actor.GetMount(mount) && mount) {
-        // Forms (and so the mount) outlive this call; the handle only guards the lookup.
-        return *mount;
+
+    const ChargeRoles roles = RolesForOneOffAction(role, parties.riderHandle != nullptr, a_eventActor.IsPlayerRef());
+    if (roles.settingsFrom == Party::Rider && parties.riderHandle) {
+        parties.actor = parties.riderHandle.get();
     }
-    return a_actor;
+    if (roles.payer == Party::Mount && parties.mountHandle) {
+        parties.payer = parties.mountHandle.get();
+    }
+    return parties;
 }
 
 MountRole GetMountRole(const RE::Actor& a_actor)

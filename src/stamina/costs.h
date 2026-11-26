@@ -1,7 +1,10 @@
 #pragma once
 
 // Stamina charges for every action the mod handles. Hooks call these and nothing else.
-// Each function: gate -> base cost (formulas.h) -> PEPE perks -> clamp -> exemptions -> pay.
+// Each function: gate -> base cost (formulas.h) -> PEPE perks -> clamp -> exemptions -> pay,
+// and writes exactly one log line per event (see "Log format" in costs.cpp).
+
+#include <string_view>
 
 #include <RE/Skyrim.h>
 
@@ -10,7 +13,8 @@ namespace ExhaustingCombat::Stamina
 /// Per-frame drains: movement (exactly one of run/sneak/sprint/swim/mount sprint) and bow draw.
 void ChargeContinuousCosts(RE::Actor* a_actor, float a_deltaSeconds);
 
-/// One jump.
+/// One jump. The hook may report a mounted jump for the rider, the horse or both; the horse
+/// pays once, using the rider's settings.
 void ChargeJump(RE::Actor* a_actor);
 
 /// Fire-and-forget / charged cast starting. Returns false if the cast must be interrupted.
@@ -22,19 +26,17 @@ void ChargeJump(RE::Actor* a_actor);
 /// One arrow or bolt. Returns false if the shot must not be fired.
 [[nodiscard]] bool ChargeBowShot(RE::Actor* a_actor, RE::TESObjectWEAP* a_weapon);
 
-/// Whether an attack cost is for real or only being evaluated (AI attack choice); affects logging.
-enum class AttackCostUse
-{
-    Charge,
-    Preview,
-};
+/// The engine's attack-stamina-cost query. Returns the cost the engine should apply to the
+/// attacker. When the player attacks on horseback, the horse is charged here instead and the
+/// engine gets 0.
+[[nodiscard]] float ResolveAttackStaminaCost(RE::Actor* a_actor, const RE::BGSAttackData* a_attack, float a_vanillaCost);
 
-/// Stamina cost of a melee attack or bash after perks and exemptions. 0 means "no cost from this
-/// mod" (gated out, unarmed, exempt). The engine applies the returned value itself.
-[[nodiscard]] float ComputeAttackCost(RE::Actor* a_actor, const RE::BGSAttackData* a_attack, AttackCostUse a_use);
+/// AI attack selection: false if the attacker cannot afford this attack.
+[[nodiscard]] bool CanAffordAttack(RE::Actor* a_attacker, const RE::BGSAttackData* a_attack);
 
-/// Publishes the player's last attack cost to the SST_StaminaCostPlayer global (if present).
-void PublishPlayerAttackCost(float a_cost);
+/// A melee swing animation event on a mounted rider (see stamina/mounted-combat.h). Charges
+/// the mount unless the same attack was already charged through ResolveAttackStaminaCost.
+void ChargeMountedSwing(RE::Actor& a_rider, std::string_view a_eventName);
 
 /// Looks up forms. Call at kDataLoaded.
 void InitializeForms();

@@ -4,8 +4,11 @@
 // skipped. The engine layer (actor-context / costs) gathers plain facts from RE::Actor and asks
 // these functions; keeping them pure makes every branch unit-testable.
 
+#include <array>
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
+#include <mutex>
 #include <string_view>
 
 namespace ExhaustingCombat::Stamina
@@ -155,14 +158,72 @@ struct ChargeGateFacts
     bool inCombat          = false;
 };
 
-/// False when no stamina cost should be applied at all: god mode, or combat-only mode while out
-/// of combat.
-[[nodiscard]] constexpr bool ShouldChargeStamina(const ChargeGateFacts& a_facts) noexcept
+enum class GateResult : std::uint8_t
+{
+    Charge,
+    GodMode,      // player in god mode (tgm)
+    OutOfCombat,  // combat-only mode is on and the actor is not in combat
+};
+
+/// Whether a stamina cost applies at all, and if not, why (for logging).
+[[nodiscard]] constexpr GateResult EvaluateGate(const ChargeGateFacts& a_facts) noexcept
 {
     if (a_facts.isPlayerInGodMode) {
-        return false;
+        return GateResult::GodMode;
     }
-    return !a_facts.combatOnly || a_facts.inCombat;
+    if (a_facts.combatOnly && !a_facts.inCombat) {
+        return GateResult::OutOfCombat;
+    }
+    return GateResult::Charge;
+}
+
+[[nodiscard]] constexpr bool ShouldChargeStamina(const ChargeGateFacts& a_facts) noexcept
+{
+    return EvaluateGate(a_facts) == GateResult::Charge;
+}
+
+[[nodiscard]] constexpr std::string_view ToString(GateResult a_result) noexcept
+{
+    switch (a_result) {
+        case GateResult::Charge:
+            return "charge";
+        case GateResult::GodMode:
+            return "god mode";
+        case GateResult::OutOfCombat:
+            return "combat-only and not in combat";
+    }
+    return "unknown";
+}
+
+// ---------------------------------------------------------------------------------------------
+// Who pays for one-off actions (jump, attack, cast, shot, bow draw)
+// ---------------------------------------------------------------------------------------------
+
+enum class Party : std::uint8_t
+{
+    Self,   // the actor the event fired for
+    Rider,  // that actor's rider (the event fired for a mount)
+    Mount,  // that actor's mount (the event fired for a rider)
+};
+
+struct ChargeRoles
+{
+    Party settingsFrom;  // whose profile, gate, skills and perks apply
+    Party payer;         // whose stamina is damaged
+};
+
+/// Mounted actions are paid by the horse but use the rider's settings and perks, matching
+/// movement. The *player* riding pays with the horse because the player's stamina bar is not
+/// shown while riding; NPC riders keep paying themselves (unchanged behaviour).
+[[nodiscard]] constexpr ChargeRoles RolesForOneOffAction(MountRole a_role, bool a_hasRider, bool a_isPlayer) noexcept
+{
+    if (a_role == MountRole::Mount && a_hasRider) {
+        return { Party::Rider, Party::Self };
+    }
+    if (a_role == MountRole::Rider && a_isPlayer) {
+        return { Party::Self, Party::Mount };
+    }
+    return { Party::Self, Party::Self };
 }
 
 /// "Exclude NPCs without stamina": many vanilla NPCs have 0 (or very low) max stamina. When the
@@ -221,6 +282,13 @@ enum class AttackItemKind : std::uint8_t
     return a_modCost > 0.0f ? a_modCost : a_vanillaCost;
 }
 
+struct AttackFlags
+{
+    bool bash       = false;
+    bool power      = false;
+    bool continuous = false;
+};
+
 /// The attack-cost event fires twice when attacking while moving diagonally backwards. A short
 /// cooldown (player only) stops the second event from charging again. 10 ms was too short;
 /// 60 ms works, up to ~150 ms may be safe but is untested.
@@ -244,5 +312,60 @@ public:
 
 private:
     TimePoint m_allowedFrom{};
+};
+
+// ---------------------------------------------------------------------------------------------
+// Event de-duplication
+// ---------------------------------------------------------------------------------------------
+
+/// Accepts the first event per key and rejects repeats for the same key within a time window.
+/// Used where one action can reach us through more than one engine event (e.g. a jump reported
+/// for both rider and horse, or a mounted attack seen by two hooks). Thread-safe; keeps at most
+/// kCapacity keys (oldest evicted), which is plenty for the few actors involved.
+class EventDeduplicator
+{
+public:
+    using Clock     = std::chrono::steady_clock;
+    using TimePoint = Clock::time_point;
+    using Duration  = Clock::duration;
+
+    static constexpr std::size_t kCapacity = 16;
+
+    explicit constexpr EventDeduplicator(Duration a_window) noexcept :
+        m_window(a_window)
+    {}
+
+    /// True for a new event; false if the same key was accepted less than one window ago.
+    [[nodiscard]] bool TryAccept(std::uint32_t a_key, TimePoint a_now)
+    {
+        std::scoped_lock lock(m_mutex);
+        Entry*           oldest = &m_entries[0];
+        for (auto& entry : m_entries) {
+            if (entry.used && entry.key == a_key) {
+                if (a_now - entry.acceptedAt < m_window) {
+                    return false;
+                }
+                entry.acceptedAt = a_now;
+                return true;
+            }
+            if (!entry.used || (oldest->used && entry.acceptedAt < oldest->acceptedAt)) {
+                oldest = &entry;
+            }
+        }
+        *oldest = Entry{ a_key, a_now, true };
+        return true;
+    }
+
+private:
+    struct Entry
+    {
+        std::uint32_t key        = 0;
+        TimePoint     acceptedAt = {};
+        bool          used       = false;
+    };
+
+    Duration                      m_window;
+    std::array<Entry, kCapacity> m_entries{};
+    std::mutex                    m_mutex;
 };
 }  // namespace ExhaustingCombat::Stamina

@@ -112,3 +112,47 @@ TEST_CASE("AttackCooldown suppresses a second charge within 60 ms")
     CHECK_FALSE(cooldown.TryStart(t0 + 61ms));  // a new window started at 60 ms
     CHECK(cooldown.TryStart(t0 + 200ms));
 }
+
+TEST_CASE("EvaluateGate reports why a cost is skipped")
+{
+    CHECK(EvaluateGate({ .isPlayerInGodMode = true, .combatOnly = true, .inCombat = false }) == GateResult::GodMode);
+    CHECK(EvaluateGate({ .combatOnly = true, .inCombat = false }) == GateResult::OutOfCombat);
+    CHECK(EvaluateGate({ .combatOnly = true, .inCombat = true }) == GateResult::Charge);
+    CHECK(EvaluateGate({ .combatOnly = false, .inCombat = false }) == GateResult::Charge);
+    CHECK(ToString(GateResult::OutOfCombat) == "combat-only and not in combat");
+}
+
+TEST_CASE("RolesForOneOffAction: mounted actions use the rider's settings and the horse's stamina")
+{
+    const auto check = [](ChargeRoles a_roles, Party a_settings, Party a_payer) {
+        CHECK(a_roles.settingsFrom == a_settings);
+        CHECK(a_roles.payer == a_payer);
+    };
+    check(RolesForOneOffAction(MountRole::None, false, true), Party::Self, Party::Self);
+    check(RolesForOneOffAction(MountRole::None, false, false), Party::Self, Party::Self);
+    check(RolesForOneOffAction(MountRole::Rider, false, true), Party::Self, Party::Mount);   // player on horse
+    check(RolesForOneOffAction(MountRole::Rider, false, false), Party::Self, Party::Self);   // NPC rider: unchanged
+    check(RolesForOneOffAction(MountRole::Mount, true, false), Party::Rider, Party::Self);  // event fired for the horse
+    check(RolesForOneOffAction(MountRole::Mount, false, false), Party::Self, Party::Self);  // riderless horse
+}
+
+TEST_CASE("EventDeduplicator merges repeats of one action per key")
+{
+    using namespace std::chrono_literals;
+    EventDeduplicator dedup(300ms);
+    const auto        t0 = EventDeduplicator::TimePoint{} + 5s;
+
+    CHECK(dedup.TryAccept(1, t0));
+    CHECK_FALSE(dedup.TryAccept(1, t0 + 299ms));  // same jump reported twice
+    CHECK(dedup.TryAccept(2, t0 + 10ms));         // other actors are independent
+    CHECK(dedup.TryAccept(1, t0 + 300ms));        // next jump
+    CHECK_FALSE(dedup.TryAccept(1, t0 + 400ms));
+
+    SUBCASE("full table evicts the oldest key")
+    {
+        for (std::uint32_t key = 100; key < 100 + EventDeduplicator::kCapacity; ++key) {
+            CHECK(dedup.TryAccept(key, t0 + 1s + std::chrono::milliseconds(key)));
+        }
+        CHECK(dedup.TryAccept(2, t0 + 1100ms));  // key 2 was evicted, so it is new again
+    }
+}

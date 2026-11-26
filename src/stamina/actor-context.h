@@ -14,12 +14,24 @@ namespace ExhaustingCombat::Stamina
 /// Player profile for the player, NPC profile for everyone else (including horses).
 [[nodiscard]] const Config::ActorProfile& ProfileFor(const RE::Actor& a_actor);
 
+/// Whether costs apply to this actor at all (god mode, combat-only mode), with the reason.
+[[nodiscard]] GateResult EvaluateGate(const RE::Actor& a_actor);
+
 /// False for null, the player in god mode, or combat-only mode while out of combat.
 [[nodiscard]] bool ShouldChargeStamina(const RE::Actor* a_actor);
 
-/// Who pays for one-off actions (jump, cast, shot, bow draw): a mounted *player* pays with the
-/// horse, because the player's stamina is not used while riding. Everyone else pays themselves.
-[[nodiscard]] RE::Actor& PayerFor(RE::Actor& a_actor);
+/// The two actors involved in a one-off action (jump, attack, cast, shot, bow draw):
+/// `actor` supplies settings, gate, skills and perks; `payer` loses the stamina. They differ
+/// only when riding (see RolesForOneOffAction). The handles keep a rider/mount alive while used.
+struct ChargeParties
+{
+    RE::Actor*   actor = nullptr;
+    RE::Actor*   payer = nullptr;
+    RE::ActorPtr riderHandle;
+    RE::ActorPtr mountHandle;
+};
+
+[[nodiscard]] ChargeParties ResolveParties(RE::Actor& a_eventActor);
 
 [[nodiscard]] MountRole GetMountRole(const RE::Actor& a_actor);
 

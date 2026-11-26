@@ -87,10 +87,21 @@ struct AttackCostInputs
     float skillFactor     = 1.0f;  // product of every SkillCostFactor that applies
 };
 
+/// The power-attack multiplier actually applied: the setting for power attacks, 1 otherwise.
+[[nodiscard]] inline float AppliedPowerAttackMult(const AttackCostInputs& a_in) noexcept
+{
+    return a_in.isPowerAttack ? a_in.powerAttackMult : 1.0f;
+}
+
 /// Melee attack / bash cost before perks: base * weightMult * attackMult * (powerAttackMult) * skill.
 [[nodiscard]] inline float AttackCost(const AttackCostInputs& a_in) noexcept
 {
-    const float powerAttackMult = a_in.isPowerAttack ? a_in.powerAttackMult : 1.0f;
-    return a_in.baseCost * WeightMultiplier(a_in.itemWeight) * a_in.attackMult * powerAttackMult * a_in.skillFactor;
+    return a_in.baseCost * WeightMultiplier(a_in.itemWeight) * a_in.attackMult * AppliedPowerAttackMult(a_in) * a_in.skillFactor;
+}
+
+/// Concentration spells pay a fire-and-forget cast's cost per second, times their own multiplier.
+[[nodiscard]] inline float ConcentrationCostPerSecond(float a_castCost, float a_concentrationMult) noexcept
+{
+    return a_castCost * a_concentrationMult;
 }
 }  // namespace ExhaustingCombat::Stamina

@@ -99,3 +99,20 @@ TEST_CASE("AttackCost = base * weightMult * attackMult * powerAttackMult * skill
     in.itemWeight = 0.0f;  // e.g. a weightless torch: counts as 1 -> weightMult 1
     CHECK(AttackCost(in) == Approx(9.0f * 1.414f * 2.0f * 0.5f));
 }
+
+TEST_CASE("AppliedPowerAttackMult is the setting for power attacks only")
+{
+    AttackCostInputs in;
+    in.powerAttackMult = 2.5f;
+    in.isPowerAttack   = false;
+    CHECK(AppliedPowerAttackMult(in) == 1.0f);
+    in.isPowerAttack = true;
+    CHECK(AppliedPowerAttackMult(in) == 2.5f);
+}
+
+TEST_CASE("ConcentrationCostPerSecond: mult 1.0 keeps the previous cost")
+{
+    CHECK(ConcentrationCostPerSecond(17.0f, 1.0f) == Approx(17.0f));
+    CHECK(ConcentrationCostPerSecond(17.0f, 0.5f) == Approx(8.5f));
+    CHECK(ConcentrationCostPerSecond(17.0f, 0.0f) == Approx(0.0f));
+}

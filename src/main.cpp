@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <filesystem>
+#include <string>
 
 #include <RE/Skyrim.h>
 #include <SKSE/SKSE.h>
@@ -20,13 +21,18 @@ using namespace ExhaustingCombat;
 bool IsSupportedRuntime(const REL::Version& a_runtime)
 {
     if (std::ranges::find(Plugin::kSupportedRuntimes, a_runtime) != Plugin::kSupportedRuntimes.end()) {
+        logs::info("runtime {} is supported", a_runtime.string());
         return true;
     }
     if (!Plugin::kEnforceSupportedRuntime) {
         logs::warn("runtime {} is not supported, but the runtime check is disabled in this build; hooks may be wrong", a_runtime.string());
         return true;
     }
-    logs::critical("runtime {} is not supported (supported: 1.6.1170); {} will not load", a_runtime.string(), Plugin::kDisplayName);
+    std::string supported;
+    for (const auto& version : Plugin::kSupportedRuntimes) {
+        supported += (supported.empty() ? "" : ", ") + version.string();
+    }
+    logs::critical("runtime {} is not supported (supported: {}); {} will not load", a_runtime.string(), supported, Plugin::kDisplayName);
     return false;
 }
 

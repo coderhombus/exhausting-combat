@@ -1,14 +1,12 @@
 #include "hooks.h"
 
-#include <chrono>
-
 #include <RE/Skyrim.h>
 #include <SKSE/SKSE.h>
 #include <styyx-utils.h>
 
 #include "logging.h"
 #include "stamina/costs.h"
-#include "stamina/rules.h"
+#include "stamina/mounted-combat.h"
 
 // Hook targets are Skyrim AE 1.6.1170 Address Library IDs and offsets (see plugin-info.h for the
 // runtime check). Each hook only translates engine arguments and calls into stamina/costs.
@@ -33,12 +31,13 @@ float GetEffectiveDelta(float a_deltaTime)
     return kFallbackFrameSeconds;
 }
 
-Stamina::AttackCooldown g_playerAttackCooldown;
-
 struct PlayerUpdateHook
 {
     static void Call(RE::PlayerCharacter* a_this, float a_deltaTime)
     {
+        if (a_this) {
+            Stamina::MountedCombat::UpdatePlayer(*a_this);
+        }
         Stamina::ChargeContinuousCosts(a_this, a_deltaTime);
         func(a_this, a_deltaTime);
     }
@@ -55,8 +54,9 @@ struct NPCUpdateHook
     static inline REL::Relocation<decltype(Call)> func;
 };
 
-// Charges on the jump's "get scale" call. Does not fire for horse jumps; NPCs probably use a
-// different path (untested). Fine for now: free horse jumps are a perk of having a horse.
+// Charges on the jump's "get scale" call. A mounted jump may be reported for the horse, the
+// rider or both; ChargeJump charges the horse once with the rider's settings. NPC jumps may use
+// a different path (untested).
 struct JumpGetScaleHook
 {
     static float Call(RE::TESObjectREFR* a_this)
@@ -106,25 +106,7 @@ struct AttackStaminaCostHook
     static float Call(RE::ActorValueOwner* a_this, RE::BGSAttackData* a_attack)
     {
         const float vanillaCost = func(a_this, a_attack);
-        auto*       actor       = skyrim_cast<RE::Actor*>(a_this);
-        if (!actor || !a_attack) {
-            return vanillaCost;
-        }
-
-        const bool isPlayer   = actor->IsPlayerRef();
-        const bool suppressed = isPlayer && !g_playerAttackCooldown.TryStart(Stamina::AttackCooldown::Clock::now());
-        const bool continuous = a_attack->data.flags.any(RE::AttackData::AttackFlag::kContinuousAttack);
-        const float modCost   = (suppressed || continuous) ? 0.0f : Stamina::ComputeAttackCost(actor, a_attack, Stamina::AttackCostUse::Charge);
-        const float result    = Stamina::ResolveAttackHookCost(vanillaCost, modCost, continuous, suppressed);
-
-        if (isPlayer && modCost > 0.0f) {
-            Stamina::PublishPlayerAttackCost(modCost);
-        }
-        if (IsDebugEnabled() && (suppressed || continuous || modCost <= 0.0f)) {
-            logs::debug("[attack] {} vanilla={:.3f} mod={:.3f} -> {:.3f}{}{}", Describe(actor), vanillaCost, modCost, result,
-                        suppressed ? " (duplicate event within cooldown)" : "", continuous ? " (continuous attack: vanilla)" : "");
-        }
-        return result;
+        return Stamina::ResolveAttackStaminaCost(skyrim_cast<RE::Actor*>(a_this), a_attack, vanillaCost);
     }
     static inline REL::Relocation<decltype(Call)> func;
 };
@@ -134,11 +116,8 @@ struct AttackChanceHook
 {
     static float Call(RE::Actor* a_attacker, RE::Actor* a_victim, RE::BGSAttackData* a_attack)
     {
-        if (a_attacker && a_attack) {
-            const float cost = Stamina::ComputeAttackCost(a_attacker, a_attack, Stamina::AttackCostUse::Preview);
-            if (a_attacker->GetActorValue(RE::ActorValue::kStamina) < cost) {
-                return 0.0f;
-            }
+        if (!Stamina::CanAffordAttack(a_attacker, a_attack)) {
+            return 0.0f;
         }
         return func(a_attacker, a_victim, a_attack);
     }
