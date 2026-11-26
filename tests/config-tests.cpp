@@ -51,7 +51,9 @@ TEST_CASE("Parameter table is internally consistent")
                 CHECK_FALSE(s.key.empty());
                 CHECK_FALSE(s.label.empty());
                 CHECK_FALSE(s.description.empty());
-                CHECK(s.description.find('\n') == std::string::npos);  // one TOML comment line
+                CHECK(s.description.find('%') == std::string::npos);    // tooltips are printf-style formats
+                CHECK(s.description.find("\n\n") == std::string::npos);  // no empty comment lines
+                CHECK(s.description.back() != '\n');
                 CHECK_FALSE(s.maxValue < s.minValue);
                 CHECK(p->InRange(s.defaultValue));
                 CHECK(p->GetValue() == s.defaultValue);
@@ -60,7 +62,7 @@ TEST_CASE("Parameter table is internally consistent")
             },
             ref);
     }
-    CHECK(keys.size() == 44);
+    CHECK(keys.size() == 46);
 }
 
 TEST_CASE("Player defaults are canonical and NPC defaults are identical copies")
@@ -70,6 +72,7 @@ TEST_CASE("Player defaults are canonical and NPC defaults are identical copies")
                          { &s.player.powerAttackMult, &s.npc.powerAttackMult }, { &s.player.sprintCost, &s.npc.sprintCost },
                          { &s.player.swimCost, &s.npc.swimCost }, { &s.player.sneakCost, &s.npc.sneakCost },
                          { &s.player.runCost, &s.npc.runCost }, { &s.player.castCost, &s.npc.castCost },
+                         { &s.player.concentrationMult, &s.npc.concentrationMult },
                          { &s.player.bowDrawCost, &s.npc.bowDrawCost }, { &s.player.bowShotCost, &s.npc.bowShotCost },
                          { &s.player.jumpCost, &s.npc.jumpCost }, { &s.player.mountSprintCost, &s.npc.mountSprintCost } };
     for (const auto& [player, npc] : pairs) {
@@ -151,6 +154,27 @@ TEST_CASE("Serialized file documents purpose, default and range for every settin
     CHECK(text.find("# Default: 2 | Valid: 0 to 6\niLogLevel = 2") != std::string::npos);
     CHECK(text.find("Not implemented yet") != std::string::npos);
     CHECK(text.find("[Stamina.ActorValue]") != std::string::npos);
+    SUBCASE("multi-line descriptions become one comment line each")
+    {
+        CHECK(text.find("# Base stamina cost of a melee attack or bash.\n# Then scaled by item weight") != std::string::npos);
+        std::istringstream lines(text);
+        for (std::string line; std::getline(lines, line);) {
+            CAPTURE(line);
+            const bool isComment = line.starts_with("#"), isSection = line.starts_with("["), isBlank = line.empty();
+            const bool isAssignment = line.find(" = ") != std::string::npos;
+            CHECK((isComment || isSection || isBlank || isAssignment));
+        }
+    }
+}
+
+TEST_CASE("Concentration multiplier: own setting per profile, default 1.0 (no change in cost)")
+{
+    Settings s;
+    CHECK(s.player.concentrationMult.GetValue() == 1.0f);
+    CHECK(s.player.concentrationMult.Spec().key == "fPlayerStaminaMultConcentration");
+    CHECK(s.npc.concentrationMult.Spec().key == "fNPCStaminaMultConcentration");
+    CHECK(s.npc.concentrationMult.Spec().maxValue == 20.0f);
+    CHECK(s.npc.concentrationMult.Spec().visibleInMenu);
 }
 
 TEST_CASE("Loading: missing keys, wrong types, ranges, NaN and unknown keys")

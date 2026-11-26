@@ -26,6 +26,7 @@ struct ActorProfile
     FloatParameter sneakCost;
     FloatParameter runCost;
     FloatParameter castCost;
+    FloatParameter concentrationMult;  // concentration spells only, on top of castCost
     FloatParameter bowDrawCost;
     FloatParameter bowShotCost;
     FloatParameter jumpCost;

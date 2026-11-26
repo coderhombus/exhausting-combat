@@ -121,7 +121,12 @@ template <class T>
 void AppendSetting(std::ostringstream& a_out, const Parameter<T>& a_parameter)
 {
     const auto& spec = a_parameter.Spec();
-    a_out << "# " << spec.description << '\n';
+    std::string_view description = spec.description;  // one comment line per '\n'
+    while (!description.empty()) {
+        const auto lineEnd = description.find('\n');
+        a_out << "# " << description.substr(0, lineEnd) << '\n';
+        description = lineEnd == std::string_view::npos ? std::string_view{} : description.substr(lineEnd + 1);
+    }
     if constexpr (std::is_same_v<T, bool>) {
         a_out << "# Default: " << FormatValue(spec.defaultValue) << " | Valid: true or false\n";
     } else {

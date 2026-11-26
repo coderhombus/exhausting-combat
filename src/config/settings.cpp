@@ -24,6 +24,7 @@ struct ProfileDefaults
     float sneakCost          = 2.0f;
     float runCost            = 1.0f;
     float castCost           = 10.0f;
+    float concentrationMult  = 1.0f;  // 1.0 keeps concentration costs as before this setting existed
     float bowDrawCost        = 5.0f;
     float bowShotCost        = 10.0f;
     float jumpCost           = 10.0f;
@@ -96,54 +97,59 @@ FloatParameter MakeFloat(const ProfileNames& a_names, std::string_view a_keyStem
 
 ActorProfile MakeProfile(const ProfileNames& n, const ProfileDefaults& d)
 {
-    const std::string npcJumpNote   = n.isNpc ? " NPC jumps may not reach the hooked function, so this may have no effect (untested)." : "";
-    const std::string npcHorseNote  = n.isNpc ? " Applies to horses ridden by NPCs and to riderless horses (untested)." : "";
+    // Descriptions are shown as menu tooltips (one line per '\n') and as TOML comments.
+    // Never use '%': FUCK passes tooltip text to ImGui as a printf-style format string.
+    const std::string npcJumpNote  = n.isNpc ? "\nNPC jumps may not reach the hooked function, so this may have no effect (untested)." : "";
+    const std::string npcHorseNote = n.isNpc ? "\nApplies to horses ridden by NPCs and to riderless horses (untested)." : "";
+    const std::string loadNote     = "\nRaised by carried weight: x1.5 at full carry weight, more when over-encumbered.";
 
     return ActorProfile{
         .equippedWeightOnly = MakeBool(n, "EquippedWeightOnly", "Equipped Weight Only",
-                                       "When on, only equipped items count as carried weight for jump, sprint, swim and run costs. "
-                                       "When off, the whole inventory weight counts.",
+                                       "On: only equipped items count as carried weight for jump, sprint, swim and run costs.\n"
+                                       "Off: the whole inventory weight counts.",
                                        d.equippedWeightOnly),
-        .combatOnly         = MakeBool(n, "CombatOnly", "Combat Only", "When on, this mod charges no stamina outside combat.", d.combatOnly),
+        .combatOnly         = MakeBool(n, "CombatOnly", "Combat Only", "On: this mod charges no stamina outside combat.", d.combatOnly),
         .attackCost         = MakeFloat(n, "StaminaCostAttack", "Attack Cost",
-                                        "Base stamina cost of a melee attack or bash, before item weight (x1 to x2), multipliers, skill scaling "
-                                        "and perks. Unarmed attacks add no cost (the vanilla cost applies).",
+                                        "Base stamina cost of a melee attack or bash.\n"
+                                        "Then scaled by item weight (x1 to x2), Attack Mult, Power Attack Mult, skill scaling and perks.\n"
+                                        "Unarmed attacks add no cost (the vanilla cost applies).",
                                         d.attackCost, kMinCost, kMaxCost),
         .attackMult         = MakeFloat(n, "StaminaMultAttack", "Attack Mult", "Multiplier applied to every melee attack and bash cost.",
                                         d.attackMult, kMinMult, kMaxMult),
         .powerAttackMult    = MakeFloat(n, "StaminaMultPAttack", "Power Attack Mult",
-                                        "Additional multiplier for power attacks, applied on top of Attack Mult.", d.powerAttackMult, kMinMult,
-                                        kMaxMult),
-        .sprintCost         = MakeFloat(n, "StaminaCostSprint", "Sprint Cost",
-                                        "Stamina per second while sprinting on foot, raised by up to 50% at full carry weight.", d.sprintCost,
+                                        "Additional multiplier for power attacks only, applied on top of Attack Mult.", d.powerAttackMult,
+                                        kMinMult, kMaxMult),
+        .sprintCost         = MakeFloat(n, "StaminaCostSprint", "Sprint Cost", "Stamina per second while sprinting on foot." + loadNote,
+                                        d.sprintCost, kMinCost, kMaxCost),
+        .swimCost           = MakeFloat(n, "StaminaCostSwim", "Swim Cost", "Stamina per second while swimming." + loadNote, d.swimCost,
                                         kMinCost, kMaxCost),
-        .swimCost           = MakeFloat(n, "StaminaCostSwim", "Swim Cost",
-                                        "Stamina per second while swimming, raised by up to 50% at full carry weight.", d.swimCost, kMinCost,
-                                        kMaxCost),
         .sneakCost          = MakeFloat(n, "StaminaCostSneak", "Sneak Cost",
-                                        "Stamina per second while moving in sneak mode, reduced by Sneak skill scaling.", d.sneakCost, kMinCost,
+                                        "Stamina per second while moving in sneak mode.\nReduced by Sneak skill scaling.", d.sneakCost, kMinCost,
                                         kMaxCost),
         .runCost            = MakeFloat(n, "StaminaCostRunning", "Running Cost",
-                                        "Stamina per second while running (not sprinting, sneaking or swimming), raised by up to 50% at full "
-                                        "carry weight.",
-                                        d.runCost, kMinCost, kMaxCost),
+                                        "Stamina per second while running (not sprinting, sneaking or swimming)." + loadNote, d.runCost,
+                                        kMinCost, kMaxCost),
         .castCost           = MakeFloat(n, "StaminaCostCast", "Casting Cost",
-                                        "Base stamina cost per spell cast (per second for concentration spells). The spell's magicka cost adds "
-                                        "up to 25 more; reduced by the spell school's skill scaling. 0 disables spell costs.",
+                                        "Base stamina cost per spell cast (per second for concentration spells).\n"
+                                        "The spell's magicka cost adds up to 25 more; reduced by the spell school's skill scaling.\n"
+                                        "0 disables spell costs.",
                                         d.castCost, kMinCost, kMaxCost),
+        .concentrationMult  = MakeFloat(n, "StaminaMultConcentration", "Concentration Mult",
+                                        "Multiplier for concentration spells only, applied on top of the casting cost per second.\n"
+                                        "1.0 = a second of concentration costs the same as one fire-and-forget cast.",
+                                        d.concentrationMult, kMinMult, kMaxMult),
         .bowDrawCost        = MakeFloat(n, "StaminaCostBowDrain", "Bow Drawing Cost",
-                                        "Stamina per second while holding a drawn bow without zooming in. Also drains during the whole "
-                                        "crossbow reload animation.",
+                                        "Stamina per second while holding a drawn bow without zooming in.\n"
+                                        "Also drains during the whole crossbow reload animation.",
                                         d.bowDrawCost, kMinCost, kMaxCost),
         .bowShotCost        = MakeFloat(n, "StaminaCostBow", "Bow Shooting Cost",
-                                        "Stamina cost per arrow or bolt fired, reduced by Archery skill scaling. The shot fails if it would "
-                                        "leave the shooter with no stamina.",
+                                        "Stamina cost per arrow or bolt fired, reduced by Archery skill scaling.\n"
+                                        "The shot fails if it would leave the shooter with no stamina.",
                                         d.bowShotCost, kMinCost, kMaxCost),
-        .jumpCost           = MakeFloat(n, "StaminaCostJump", "Jumping Cost",
-                                        "Stamina cost per jump, raised by up to 50% at full carry weight." + npcJumpNote, d.jumpCost, kMinCost,
-                                        kMaxCost),
+        .jumpCost           = MakeFloat(n, "StaminaCostJump", "Jumping Cost", "Stamina cost per jump." + loadNote + npcJumpNote, d.jumpCost,
+                                        kMinCost, kMaxCost),
         .mountSprintCost    = MakeFloat(n, "StaminaCostSprintHorse", "Horse Sprint Cost",
-                                        "Stamina per second a horse pays while sprinting. A ridden horse uses its rider's settings and perks." +
+                                        "Stamina per second a horse pays while sprinting.\nA ridden horse uses its rider's settings and perks." +
                                             npcHorseNote,
                                         d.mountSprintCost, kMinCost, kMaxCost),
     };
@@ -152,7 +158,7 @@ ActorProfile MakeProfile(const ProfileNames& n, const ProfileDefaults& d)
 FloatParameter MakeSkill(std::string_view a_keyName, std::string_view a_label, std::string_view a_whatIsReduced, bool a_implemented = true)
 {
     std::string description = a_implemented ?
-                                  Join("Fraction of ", a_whatIsReduced, " stamina costs removed at skill 100, scaling linearly with skill (0 = off, 1 = free at 100).") :
+                                  Join("Fraction of ", a_whatIsReduced, " stamina costs removed at skill 100, scaling linearly with skill.\n0 = off, 1 = free at skill 100.") :
                                   std::string("Not implemented yet: this value currently has no effect.");
     return FloatParameter{ { .section       = std::string(kSkillScalingSection),
                              .key           = Join("fAV", a_keyName, "Mult"),
@@ -205,8 +211,9 @@ Settings::Settings() :
     general{ .logLevel = IntParameter{ { .section      = std::string(kGeneralSection),
                                          .key          = "iLogLevel",
                                          .label        = "Log Level##general",
-                                         .description  = "Log detail: 0 trace (every per-frame drain), 1 debug (every one-off charge with its "
-                                                         "inputs), 2 info, 3 warnings, 4 errors, 5 critical, 6 off. 0 and 1 write large logs.",
+                                         .description  = "Log detail: 0 trace, 1 debug, 2 info, 3 warnings, 4 errors, 5 critical, 6 off.\n"
+                                                         "1 logs every attack, cast, shot and jump with its inputs; 0 also logs per-frame drains.\n"
+                                                         "0 and 1 write large logs.",
                                          .defaultValue = kLogLevelInfo,
                                          .minValue     = kLogLevelTrace,
                                          .maxValue     = kLogLevelOff,
@@ -217,8 +224,8 @@ Settings::Settings() :
         { .section      = std::string(kNpcNames.section),
           .key          = "bExcludeNoStaminaNPCs",
           .label        = "No Stamina Exception##npc",
-          .description  = "When on, an NPC whose maximum stamina is lower than the cost of an attack, spell or bow shot performs it for "
-                          "free. Many vanilla NPCs have 0 stamina and could otherwise never act.",
+          .description  = "On: an NPC whose maximum stamina is lower than the cost of an attack, spell or bow shot performs it for free.\n"
+                          "Many vanilla NPCs have 0 stamina and could otherwise never act.",
           .defaultValue = true,
           .minValue     = false,
           .maxValue     = true,
@@ -244,7 +251,7 @@ Settings::Settings() :
 std::vector<ParameterRef> Settings::All()
 {
     std::vector<ParameterRef> all;
-    all.reserve(48);
+    all.reserve(52);
 
     all.emplace_back(&general.logLevel);
 
@@ -256,7 +263,7 @@ std::vector<ParameterRef> Settings::All()
         }
         for (FloatParameter* p : { &a_profile.attackCost, &a_profile.attackMult, &a_profile.powerAttackMult, &a_profile.sprintCost,
                                    &a_profile.swimCost, &a_profile.sneakCost, &a_profile.runCost, &a_profile.castCost,
-                                   &a_profile.bowDrawCost, &a_profile.bowShotCost, &a_profile.jumpCost, &a_profile.mountSprintCost }) {
+                                   &a_profile.concentrationMult, &a_profile.bowDrawCost, &a_profile.bowShotCost, &a_profile.jumpCost, &a_profile.mountSprintCost }) {
             all.emplace_back(p);
         }
     };
