@@ -1,2 +1,3 @@
 src/*.h text eol=crlf
 src/*.cpp text eol=crlf
+release/*.toml text eol=lf

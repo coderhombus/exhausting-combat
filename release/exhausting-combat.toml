@@ -1,48 +1,191 @@
-[Stamina.NPC]
-bNPCEquippedWeightOnly = true
-bNPCCombatOnly = true
-bExcludeNoStaminaNPCs = true
-fNPCStaminaCostJump = 10.0
-fNPCStaminaCostBow = 10.0
-fNPCStaminaCostSprint = 7.0
-fNPCStaminaCostAttack = 10.0
-fNPCStaminaMultAttack = 1.414
-fNPCStaminaMultPAttack = 2.0
-fNPCStaminaCostSneak = 2.0
-fNPCStaminaCostCast = 9.0
-fNPCStaminaCostSprintHorse = 10.0
-fNPCStaminaCostBowDrain = 5.0
-fNPCStaminaCostSwim = 5.0
-fNPCStaminaCostRunning = 1.0
+# Exhausting Combat configuration
+#
+# Read when the game starts and rewritten when settings change in the in-game menu.
+# Every setting lists what it does, its default and its valid range. Values outside the
+# range are clamped; missing or invalid values fall back to the default and are reported
+# in the SKSE log (Documents/My Games/Skyrim Special Edition/SKSE/styyx-stamina-combat.log).
+# Costs are in stamina points; drains marked 'per second' scale with frame time.
+
+[General]
+
+# Log detail: 0 trace (every per-frame drain), 1 debug (every one-off charge with its inputs), 2 info, 3 warnings, 4 errors, 5 critical, 6 off. 0 and 1 write large logs.
+# Default: 2 | Valid: 0 to 6
+iLogLevel = 2
 
 [Stamina.Player]
+
+# When on, only equipped items count as carried weight for jump, sprint, swim and run costs. When off, the whole inventory weight counts.
+# Default: true | Valid: true or false
 bPlayerEquippedWeightOnly = true
-bPlayerCombatOnly =  true
-fPlayerStaminaCostJump = 10.0
-fPlayerStaminaCostBow = 10.0
-fPlayerStaminaCostSprint = 7.0
+
+# When on, this mod charges no stamina outside combat.
+# Default: true | Valid: true or false
+bPlayerCombatOnly = true
+
+# Base stamina cost of a melee attack or bash, before item weight (x1 to x2), multipliers, skill scaling and perks. Unarmed attacks add no cost (the vanilla cost applies).
+# Default: 9.0 | Valid: 0.0 to 20.0
 fPlayerStaminaCostAttack = 9.0
+
+# Multiplier applied to every melee attack and bash cost.
+# Default: 1.414 | Valid: 0.0 to 20.0
 fPlayerStaminaMultAttack = 1.414
+
+# Additional multiplier for power attacks, applied on top of Attack Mult.
+# Default: 2.0 | Valid: 0.0 to 20.0
 fPlayerStaminaMultPAttack = 2.0
-fPlayerStaminaCostSneak = 2.0
-fPlayerStaminaCostCast = 10.0
-fPlayerStaminaCostSprintHorse = 7.0
-fPlayerStaminaCostBowDrain = 5.0
+
+# Stamina per second while sprinting on foot, raised by up to 50% at full carry weight.
+# Default: 7.0 | Valid: 0.0 to 20.0
+fPlayerStaminaCostSprint = 7.0
+
+# Stamina per second while swimming, raised by up to 50% at full carry weight.
+# Default: 5.0 | Valid: 0.0 to 20.0
 fPlayerStaminaCostSwim = 5.0
+
+# Stamina per second while moving in sneak mode, reduced by Sneak skill scaling.
+# Default: 2.0 | Valid: 0.0 to 20.0
+fPlayerStaminaCostSneak = 2.0
+
+# Stamina per second while running (not sprinting, sneaking or swimming), raised by up to 50% at full carry weight.
+# Default: 1.0 | Valid: 0.0 to 20.0
 fPlayerStaminaCostRunning = 1.0
 
+# Base stamina cost per spell cast (per second for concentration spells). The spell's magicka cost adds up to 25 more; reduced by the spell school's skill scaling. 0 disables spell costs.
+# Default: 10.0 | Valid: 0.0 to 20.0
+fPlayerStaminaCostCast = 10.0
+
+# Stamina per second while holding a drawn bow without zooming in. Also drains during the whole crossbow reload animation.
+# Default: 5.0 | Valid: 0.0 to 20.0
+fPlayerStaminaCostBowDrain = 5.0
+
+# Stamina cost per arrow or bolt fired, reduced by Archery skill scaling. The shot fails if it would leave the shooter with no stamina.
+# Default: 10.0 | Valid: 0.0 to 20.0
+fPlayerStaminaCostBow = 10.0
+
+# Stamina cost per jump, raised by up to 50% at full carry weight.
+# Default: 10.0 | Valid: 0.0 to 20.0
+fPlayerStaminaCostJump = 10.0
+
+# Stamina per second a horse pays while sprinting. A ridden horse uses its rider's settings and perks.
+# Default: 7.0 | Valid: 0.0 to 20.0
+fPlayerStaminaCostSprintHorse = 7.0
+
+[Stamina.NPC]
+
+# When on, only equipped items count as carried weight for jump, sprint, swim and run costs. When off, the whole inventory weight counts.
+# Default: true | Valid: true or false
+bNPCEquippedWeightOnly = true
+
+# When on, this mod charges no stamina outside combat.
+# Default: true | Valid: true or false
+bNPCCombatOnly = true
+
+# When on, an NPC whose maximum stamina is lower than the cost of an attack, spell or bow shot performs it for free. Many vanilla NPCs have 0 stamina and could otherwise never act.
+# Default: true | Valid: true or false
+bExcludeNoStaminaNPCs = true
+
+# Base stamina cost of a melee attack or bash, before item weight (x1 to x2), multipliers, skill scaling and perks. Unarmed attacks add no cost (the vanilla cost applies).
+# Default: 9.0 | Valid: 0.0 to 20.0
+fNPCStaminaCostAttack = 9.0
+
+# Multiplier applied to every melee attack and bash cost.
+# Default: 1.414 | Valid: 0.0 to 20.0
+fNPCStaminaMultAttack = 1.414
+
+# Additional multiplier for power attacks, applied on top of Attack Mult.
+# Default: 2.0 | Valid: 0.0 to 20.0
+fNPCStaminaMultPAttack = 2.0
+
+# Stamina per second while sprinting on foot, raised by up to 50% at full carry weight.
+# Default: 7.0 | Valid: 0.0 to 20.0
+fNPCStaminaCostSprint = 7.0
+
+# Stamina per second while swimming, raised by up to 50% at full carry weight.
+# Default: 5.0 | Valid: 0.0 to 20.0
+fNPCStaminaCostSwim = 5.0
+
+# Stamina per second while moving in sneak mode, reduced by Sneak skill scaling.
+# Default: 2.0 | Valid: 0.0 to 20.0
+fNPCStaminaCostSneak = 2.0
+
+# Stamina per second while running (not sprinting, sneaking or swimming), raised by up to 50% at full carry weight.
+# Default: 1.0 | Valid: 0.0 to 20.0
+fNPCStaminaCostRunning = 1.0
+
+# Base stamina cost per spell cast (per second for concentration spells). The spell's magicka cost adds up to 25 more; reduced by the spell school's skill scaling. 0 disables spell costs.
+# Default: 10.0 | Valid: 0.0 to 20.0
+fNPCStaminaCostCast = 10.0
+
+# Stamina per second while holding a drawn bow without zooming in. Also drains during the whole crossbow reload animation.
+# Default: 5.0 | Valid: 0.0 to 20.0
+fNPCStaminaCostBowDrain = 5.0
+
+# Stamina cost per arrow or bolt fired, reduced by Archery skill scaling. The shot fails if it would leave the shooter with no stamina.
+# Default: 10.0 | Valid: 0.0 to 20.0
+fNPCStaminaCostBow = 10.0
+
+# Stamina cost per jump, raised by up to 50% at full carry weight. NPC jumps may not reach the hooked function, so this may have no effect (untested).
+# Default: 10.0 | Valid: 0.0 to 20.0
+fNPCStaminaCostJump = 10.0
+
+# Stamina per second a horse pays while sprinting. A ridden horse uses its rider's settings and perks. Applies to horses ridden by NPCs and to riderless horses (untested).
+# Default: 7.0 | Valid: 0.0 to 20.0
+fNPCStaminaCostSprintHorse = 7.0
+
 [Stamina.ActorValue]
+
+# Fraction of one-handed weapon attack stamina costs removed at skill 100, scaling linearly with skill (0 = off, 1 = free at 100).
+# Default: 0.0 | Valid: 0.0 to 1.0
 fAVOneHandedMult = 0.0
+
+# Fraction of two-handed weapon attack stamina costs removed at skill 100, scaling linearly with skill (0 = off, 1 = free at 100).
+# Default: 0.0 | Valid: 0.0 to 1.0
 fAVTwoHandedMult = 0.0
+
+# Fraction of bow and crossbow (shot, draw and bash) stamina costs removed at skill 100, scaling linearly with skill (0 = off, 1 = free at 100).
+# Default: 0.0 | Valid: 0.0 to 1.0
 fAVArcheryMult = 0.0
+
+# Fraction of bash stamina costs removed at skill 100, scaling linearly with skill (0 = off, 1 = free at 100).
+# Default: 0.0 | Valid: 0.0 to 1.0
 fAVBlockMult = 0.0
+
+# Fraction of heavy shield bash stamina costs removed at skill 100, scaling linearly with skill (0 = off, 1 = free at 100).
+# Default: 0.0 | Valid: 0.0 to 1.0
 fAVHeavyArmorMult = 0.0
+
+# Fraction of light shield bash stamina costs removed at skill 100, scaling linearly with skill (0 = off, 1 = free at 100).
+# Default: 0.0 | Valid: 0.0 to 1.0
 fAVLightArmorMult = 0.0
+
+# Fraction of sneak movement stamina costs removed at skill 100, scaling linearly with skill (0 = off, 1 = free at 100).
+# Default: 0.0 | Valid: 0.0 to 1.0
 fAVSneakMult = 0.0
+
+# Fraction of Alteration spell stamina costs removed at skill 100, scaling linearly with skill (0 = off, 1 = free at 100).
+# Default: 0.0 | Valid: 0.0 to 1.0
 fAVAlterationMult = 0.0
+
+# Fraction of Illusion spell stamina costs removed at skill 100, scaling linearly with skill (0 = off, 1 = free at 100).
+# Default: 0.0 | Valid: 0.0 to 1.0
 fAVIllusionMult = 0.0
+
+# Fraction of Destruction spell stamina costs removed at skill 100, scaling linearly with skill (0 = off, 1 = free at 100).
+# Default: 0.0 | Valid: 0.0 to 1.0
 fAVDestructionMult = 0.0
+
+# Fraction of Conjuration spell stamina costs removed at skill 100, scaling linearly with skill (0 = off, 1 = free at 100).
+# Default: 0.0 | Valid: 0.0 to 1.0
 fAVConjurationMult = 0.0
+
+# Fraction of Restoration spell stamina costs removed at skill 100, scaling linearly with skill (0 = off, 1 = free at 100).
+# Default: 0.0 | Valid: 0.0 to 1.0
 fAVRestorationMult = 0.0
+
+# Not implemented yet: this value currently has no effect.
+# Default: 0.0 | Valid: 0.0 to 1.0
 fAVSpeedMultMult = 0.0
+
+# Not implemented yet: this value currently has no effect.
+# Default: 0.0 | Valid: 0.0 to 1.0
 fAVInventoryWeightMult = 0.0
